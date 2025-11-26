@@ -1,0 +1,7 @@
+{
+  "name": "auction/site",
+  "description": "Auction project dependencies",
+  "require": {
+    "phpmailer/phpmailer": "^7.0"
+  }
+}

@@ -1,5 +1,56 @@
 <?php
 
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+// Include configuration constants
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/vendor/autoload.php';
+
+/**
+ * Send email via PHPMailer and SMTP.
+ *
+ * @param string $recipient_email The email address of the recipient.
+ * @param string $subject         Subject line of the message.
+ * @param string $html_body       HTML content of the message.
+ * @param string $alt_body        Optional plain-text fallback.
+ * @return bool                   True on success, false on failure.
+ */
+function send_email($recipient_email, $subject, $html_body, $alt_body = '')
+{
+    try {
+        $mail = new PHPMailer(true);
+
+        // SMTP settings
+        $mail->isSMTP();
+        $mail->Host = SMTP_HOST;
+        $mail->SMTPAuth = true;
+        $mail->Username = SMTP_USER;
+        $mail->Password = SMTP_PASS;
+        $mail->SMTPSecure = SMTP_SECURE;
+        $mail->Port = SMTP_PORT;
+
+        // Sender
+        $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
+
+        // Recipient
+        $mail->addAddress($recipient_email);
+
+        // Email content
+        $mail->isHTML(true);
+        $mail->Subject = $subject;
+        $mail->Body = $html_body;
+        $mail->AltBody = $alt_body !== '' ? $alt_body : strip_tags($html_body);
+
+        // Send
+        return $mail->send();
+    } catch (Exception $e) {
+        error_log('Unable to send email: ' . $e->getMessage());
+        return false;
+    }
+}
+
+
 // display_time_remaining:
 // Helper function to help figure out what time to display
 function display_time_remaining($interval) {

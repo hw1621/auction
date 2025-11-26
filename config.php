@@ -11,6 +11,15 @@ define('DB_NAME', 'auction'); // You may need to change this to your actual data
 define('DB_USER', 'admin'); // Database username here
 define('DB_PASS', 'useradmin123'); // Database password here
 
+// SMTP configuration for PHPMailer (update with real credentials)
+define('SMTP_HOST', 'smtp.gmail.com');
+define('SMTP_PORT', 587);
+define('SMTP_USER', 'haoranw1621@gmail.com'); // SMTP username
+define('SMTP_PASS', 'hrcw hump gguw reqa'); // SMTP password
+define('SMTP_SECURE', 'tls');
+define('SMTP_FROM_EMAIL', SMTP_USER);
+define('SMTP_FROM_NAME', 'Auction Site');
+
 // Global variable to store the database connection (singleton pattern)
 $GLOBALS['db_connection'] = null;
 
