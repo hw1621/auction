@@ -1,0 +1,17 @@
+/.php-cs-fixer.cache
+.phpunit.result.cache
+.idea/
+/.vscode/
+vendor/
+composer.phar
+/tmp/
+*.log
+*.tmp
+*.swp
+.DS_Store
+.env
+.env.local
+.env.*.local
+/.phpunit.result.cache
+/.phpunit.cache
+
