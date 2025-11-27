@@ -11,6 +11,17 @@ define('DB_NAME', 'auction'); // You may need to change this to your actual data
 define('DB_USER', 'admin'); // Database username here
 define('DB_PASS', 'useradmin123'); // Database password here
 
+/**
+ * Application-wide auction status values.
+ */
+class AuctionStatus
+{
+    public const ACTIVE = 'active';
+    public const SOLD = 'sold';
+    public const UNSOLD = 'unsold';
+    public const CANCELLED = 'cancelled';
+}
+
 // SMTP configuration for PHPMailer (update with real credentials)
 define('SMTP_HOST', 'smtp.gmail.com');
 define('SMTP_PORT', 587);
