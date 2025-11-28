@@ -72,6 +72,15 @@
       <a class="nav-link btn border-light" href="create_auction.php">+ Create auction</a>
     </li>');
   }
+
+  // 增添Recommendations
+  echo '<li class="nav-item mx-1">';
+  if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] == true) {
+      echo '<a class="nav-link" href="recommendations.php">Recommendations</a>';
+  } else {
+      echo '<a class="nav-link" href="#" data-toggle="modal" data-target="#loginModal">Recommendations</a>';  
+  }
+  echo '</li>';
 ?>
   </ul>
 </nav>
