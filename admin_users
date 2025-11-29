@@ -11,16 +11,20 @@ if (empty($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true ||
 }
 
 require_once 'config.php';
+$conn = get_database_connection();
 include_once 'header.php';
 
-$errors = [];
+$errors  = [];
 $success = '';
 
+/* -------------------------
+   Update user role
+--------------------------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_role'])) {
+
     $targetUserId = (int)($_POST['user_id'] ?? 0);
     $newRole      = $_POST['new_role'] ?? '';
-
-    $validRoles = ['buyer', 'seller', 'admin'];
+    $validRoles   = ['buyer', 'seller', 'admin'];
 
     if ($targetUserId <= 0 || !in_array($newRole, $validRoles, true)) {
         $errors[] = 'Invalid user or role.';
@@ -28,41 +32,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_role'])) {
         if ($targetUserId == $_SESSION['user_id'] && $newRole !== 'admin') {
             $errors[] = 'You cannot change your own role.';
         } else {
-            $stmt = $pdo->prepare("UPDATE users SET role = :role WHERE user_id = :uid");
-            $stmt->execute([
-                ':role' => $newRole,
-                ':uid'  => $targetUserId
-            ]);
-            $success = 'Role updated successfully.';
+            $stmt = $conn->prepare("UPDATE users SET role = ? WHERE user_id = ?");
+            if ($stmt) {
+                $stmt->bind_param("si", $newRole, $targetUserId);
+                if ($stmt->execute()) {
+                    $success = 'Role updated successfully.';
+                } else {
+                    $errors[] = 'Database error updating role: ' . $stmt->error;
+                }
+                $stmt->close();
+            } else {
+                $errors[] = 'Database prepare() error: ' . $conn->error;
+            }
         }
     }
 }
 
-$stmt = $pdo->query("
+/* -------------------------
+   Fetch all users
+--------------------------- */
+$users = [];
+$result = $conn->query("
     SELECT user_id, username, email, role, created_at
       FROM users
      ORDER BY created_at DESC
 ");
-$users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+if ($result) {
+    $users = $result->fetch_all(MYSQLI_ASSOC);
+    $result->close();
+} else {
+    $errors[] = 'Database error fetching users: ' . $conn->error;
+}
 ?>
 
 <div class="container my-5">
   <h2 class="mb-4">Admin: User Management</h2>
 
   <?php if (!empty($errors)): ?>
-    <div class="alert alert-danger">
-      <ul class="mb-0">
-        <?php foreach ($errors as $e): ?>
-          <li><?= htmlspecialchars($e) ?></li>
-        <?php endforeach; ?>
-      </ul>
-    </div>
+    <div class="alert alert-danger"><ul>
+      <?php foreach ($errors as $e): ?>
+        <li><?= htmlspecialchars($e) ?></li>
+      <?php endforeach; ?>
+    </ul></div>
   <?php endif; ?>
 
   <?php if ($success): ?>
-    <div class="alert alert-success">
-      <?= htmlspecialchars($success) ?>
-    </div>
+    <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
   <?php endif; ?>
 
   <table class="table table-striped">
@@ -77,30 +93,32 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
       </tr>
     </thead>
     <tbody>
-      <?php foreach ($users as $u): ?>
-        <tr>
-          <td><?= (int)$u['user_id'] ?></td>
-          <td><?= htmlspecialchars($u['username']) ?></td>
-          <td><?= htmlspecialchars($u['email']) ?></td>
-          <td><?= htmlspecialchars($u['role']) ?></td>
-          <td><?= htmlspecialchars($u['created_at']) ?></td>
-          <td>
-            <form method="post" action="admin_users.php" class="form-inline">
-              <input type="hidden" name="user_id" value="<?= (int)$u['user_id'] ?>">
-              <select name="new_role" class="form-control form-control-sm mr-2">
+    <?php foreach ($users as $u): ?>
+      <tr>
+        <td><?= (int)$u['user_id'] ?></td>
+        <td><?= htmlspecialchars($u['username']) ?></td>
+        <td><?= htmlspecialchars($u['email']) ?></td>
+        <td><?= htmlspecialchars($u['role']) ?></td>
+        <td><?= htmlspecialchars($u['created_at']) ?></td>
+        <td>
+          <form method="post" action="admin_users.php" class="form-inline">
+            <input type="hidden" name="user_id" value="<?= (int)$u['user_id'] ?>">
+
+            <select name="new_role" class="form-control form-control-sm mr-2">
                 <option value="buyer"  <?= $u['role']==='buyer'  ? 'selected' : '' ?>>buyer</option>
                 <option value="seller" <?= $u['role']==='seller' ? 'selected' : '' ?>>seller</option>
                 <option value="admin"  <?= $u['role']==='admin'  ? 'selected' : '' ?>>admin</option>
-              </select>
-              <button type="submit"
-                      name="change_role"
-                      class="btn btn-sm btn-primary">
+            </select>
+
+            <button type="submit"
+                    name="change_role"
+                    class="btn btn-sm btn-primary">
                 Update
-              </button>
-            </form>
-          </td>
-        </tr>
-      <?php endforeach; ?>
+            </button>
+          </form>
+        </td>
+      </tr>
+    <?php endforeach; ?>
     </tbody>
   </table>
 </div>
