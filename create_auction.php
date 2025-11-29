@@ -77,12 +77,16 @@ if ($result) {
           <label for="auctionCategory" class="col-sm-2 col-form-label text-right">Category</label>
           <div class="col-sm-10">
             <select class="form-control" id="auctionCategory" name="category_id">
-              <option selected>Choose...</option>
-              <option value="fill">Fill me in</option>
-              <option value="with">with options</option>
-              <option value="populated">populated from a database?</option>
+              <option value="">Choose...</option>
+              <?php foreach ($categories as $cat): ?>
+                <option value="<?= htmlspecialchars($cat['id']) ?>">
+                  <?= htmlspecialchars($cat['name']) ?>
+                </option>
+              <?php endforeach; ?>
             </select>
-            <small id="categoryHelp" class="form-text text-muted"><span class="text-danger">* Required.</span> Select a category for this item.</small>
+            <small id="categoryHelp" class="form-text text-muted">
+              <span class="text-danger">*</span> Select a category for this item.
+            </small>
           </div>
         </div>
         <div class="form-group row">
