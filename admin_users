@@ -29,7 +29,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_role'])) {
     if ($targetUserId <= 0 || !in_array($newRole, $validRoles, true)) {
         $errors[] = 'Invalid user or role.';
     } else {
-        // 不允许把自己从 admin 降级
         if ($targetUserId == $_SESSION['user_id'] && $newRole !== 'admin') {
             $errors[] = 'You cannot change your own role.';
         } else {
@@ -49,9 +48,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_role'])) {
     }
 }
 
-/* -------------------------
-   Ban / Unban user
---------------------------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ban_action'])) {
 
     $targetUserId = (int)($_POST['user_id'] ?? 0);
@@ -61,7 +57,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ban_action'])) {
     if ($targetUserId <= 0 || !in_array($newStatus, $validStatuses, true)) {
         $errors[] = 'Invalid user or status.';
     } else {
-        // 不允许管理员把自己拉黑
         if ($targetUserId == $_SESSION['user_id'] && $newStatus === 'banned') {
             $errors[] = 'You cannot ban your own account.';
         } else {
@@ -83,9 +78,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ban_action'])) {
     }
 }
 
-/* -------------------------
-   Fetch all users
---------------------------- */
 $users = [];
 $result = $conn->query("
     SELECT user_id, username, email, role, status, created_at
@@ -139,7 +131,6 @@ if ($result) {
         <td><?= htmlspecialchars($u['email']) ?></td>
         <td><?= htmlspecialchars($u['role']) ?></td>
 
-        <!-- 状态列 -->
         <td>
           <?php if ($u['status'] === 'banned'): ?>
             <span class="badge badge-danger">banned</span>
@@ -150,7 +141,6 @@ if ($result) {
 
         <td><?= htmlspecialchars($u['created_at']) ?></td>
 
-        <!-- 修改角色 -->
         <td>
           <form method="post" action="admin_users.php" class="form-inline">
             <input type="hidden" name="user_id" value="<?= (int)$u['user_id'] ?>">
@@ -169,7 +159,6 @@ if ($result) {
           </form>
         </td>
 
-        <!-- Ban / Unban 按钮 -->
         <td>
           <form method="post" action="admin_users.php" class="form-inline">
             <input type="hidden" name="user_id" value="<?= (int)$u['user_id'] ?>">
