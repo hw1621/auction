@@ -114,27 +114,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 
-<?php include_once("header.php")?>
+
+<?php 
+if ($success) {
+    header("Location: mylistings.php");
+    exit;
+}
+include_once("header.php")?>
 
 <div class="container my-5">
 
-<?php
 
-/* TODO #1: Connect to MySQL database (perhaps by requiring a file that
-            already does this). */
-
-
-/* TODO #2: Extract form data into variables. Because the form was a 'post'
-            form, its data can be accessed via $POST['auctionTitle'], 
-            $POST['auctionDetails'], etc. Perform checking on the data to
-            make sure it can be inserted into the database. If there is an
-            issue, give some semi-helpful feedback to user. */
-
-
-/* TODO #3: If everything looks good, make the appropriate call to insert
-            data into the database. */
-
-?>
 
 <?php if (!empty($errors)): ?>
     <div class="alert alert-danger">
@@ -146,17 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </ul>
     </div>
     <a href="create_auction.php" class="btn btn-secondary">Go back to form</a>
-
-<?php elseif ($success): ?>
-    <div class="text-center">
-        Auction successfully created!
-        <?php if ($newAuctionId): ?>
-            <a href="listing.php?auction_id=<?= $newAuctionId ?>">View your new listing.</a>
-        <?php else: ?>
-            <a href="mylistings.php">Back to My Listings.</a>
-        <?php endif; ?>
-    </div>
-<?php endif; ?>
+<?php endif; ?> 
 
 </div>
 
