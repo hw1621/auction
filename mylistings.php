@@ -8,6 +8,7 @@ require_once 'utilities.php';
 
 $conn = get_database_connection();
 
+/*test*/
 $_SESSION['user_id']=1;
 
 if (empty($_SESSION['user_id'])) {

@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $title      = trim($_POST['title'] ?? '');
     $details    = trim($_POST['details'] ?? '');
-    $category   = trim($_POST['category_id'] ?? '');
+    $categoryId = $_POST['category_id'] ?? '';
     $startPrice = $_POST['start_price'] ?? '';
     $reserve    = $_POST['reserve_price'] ?? '';
     $endTimeRaw = $_POST['end_time'] ?? '';
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Title is required.';
     }
 
-    if ($category_id === '') {
+    if ($categoryId === '') {
         $errors[] = 'Category is required.';
     }
 
