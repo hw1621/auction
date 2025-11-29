@@ -32,8 +32,10 @@ if (session_status() === PHP_SESSION_NONE) {
     echo '<span class="nav-link">Hello, ' . htmlspecialchars($username) . ' (' . htmlspecialchars($role) . ')</span>';
 
     if ($role === 'admin') {
-      echo '<a class="nav-link" href="admin_users.php">Admin panel</a>';
       echo '<a class="nav-link" href="admin_auctions.php">Manage auctions</a>';
+      echo '<a class="nav-link" href="admin_dashboard.php">Dashboard</a>';
+      echo '<a class="nav-link" href="admin_users.php">Manage users</a>';
+      echo '<a class="nav-link" href="admin_bids.php">Manage bids</a>';
     }
 
     echo '<a class="nav-link" href="profile.php">My Account</a>';
