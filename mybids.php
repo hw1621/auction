@@ -1,24 +1,86 @@
-<?php include_once("header.php")?>
-<?php require("utilities.php")?>
-
-<div class="container">
-
-<h2 class="my-3">My bids</h2>
-
 <?php
-  // This page is for showing a user the auctions they've bid on.
-  // It will be pretty similar to browse.php, except there is no search bar.
-  // This can be started after browse.php is working with a database.
-  // Feel free to extract out useful functions from browse.php and put them in
-  // the shared "utilities.php" where they can be shared by multiple files.
-  
-  
-  // TODO: Check user's credentials (cookie/session).
-  
-  // TODO: Perform a query to pull up the auctions they've bidded on.
-  
-  // TODO: Loop through results and print them out as list items.
-  
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+require_once 'config.php';
+require_once 'utilities.php';
+
+$conn = get_database_connection();
+
+// 测试阶段
+if (!isset($_SESSION['user_id'])) {
+    $_SESSION['user_id']      = 1;
+    $_SESSION['account_type'] = 'buyer';
+    $_SESSION['logged_in']    = true;
+}
+
+$userId = (int)$_SESSION['user_id'];
+
+
+$sql = "
+    SELECT 
+        b.id        AS bid_id,
+        b.amount    AS bid_amount,
+        b.bid_time,
+        a.id        AS auction_id,
+        a.end_date,
+        a.status,
+        i.title     AS item_title
+    FROM bid b
+    JOIN auction a ON b.auction_id = a.id
+    JOIN item i    ON a.item_id    = i.id
+    WHERE b.bidder_id = ?
+    ORDER BY b.bid_time DESC
+";
+
+$stmt = $conn->prepare($sql);
+if ($stmt === false) {
+    die('Database error (prepare mybids): ' . $conn->error);
+}
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$result = $stmt->get_result();
+
+include_once("header.php");
 ?>
 
-<?php include_once("footer.php")?>
+<div class="container my-4">
+  <h2 class="my-3">My bids</h2>
+
+  <?php if ($result->num_rows === 0): ?>
+    <p>You have not placed any bids yet.</p>
+  <?php else: ?>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>My bid</th>
+          <th>Bid time</th>
+          <th>Auction ends</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php while ($row = $result->fetch_assoc()): ?>
+          <tr>
+            <td>
+              <?= htmlspecialchars($row['item_title']) ?>
+              <!-- listing.php 做好了，可以改成链接：
+              <a href="listing.php?auction_id=<?= $row['auction_id'] ?>">
+                <?= htmlspecialchars($row['item_title']) ?>
+              </a>
+              -->
+            </td>
+            <td>£<?= htmlspecialchars(number_format($row['bid_amount'], 2)) ?></td>
+            <td><?= htmlspecialchars($row['bid_time']) ?></td>
+            <td><?= htmlspecialchars($row['end_date']) ?></td>
+            <td><?= htmlspecialchars($row['status']) ?></td>
+          </tr>
+        <?php endwhile; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+</div>
+
+<?php include_once("footer.php"); ?>
