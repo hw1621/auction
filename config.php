@@ -7,7 +7,7 @@
 // Database connection parameters
 define('DB_HOST', 'auction.c78qcak427mc.eu-north-1.rds.amazonaws.com');
 define('DB_PORT', '3306');
-define('DB_NAME', 'auction'); // You may need to change this to your actual database name
+define('DB_NAME', 'db_coursework'); // You may need to change this to your actual database name
 define('DB_USER', 'admin'); // Database username here
 define('DB_PASS', 'useradmin123'); // Database password here
 
