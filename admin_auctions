@@ -3,151 +3,65 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-if (empty($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true ||
-    empty($_SESSION['account_type']) || $_SESSION['account_type'] !== 'admin') {
-    $_SESSION['login_error'] = 'Admin access only.';
-    header('Location: browse.php');
-    exit;
-}
-
 require_once 'config.php';
 $conn = get_database_connection();
 
-$errors = [];
-$success = "";
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email    = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-/* -------------------------
-   Delete auction by id
---------------------------- */
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_auction'])) {
-
-    $auctionId = (int)($_POST['auction_id'] ?? 0);
-
-    if ($auctionId <= 0) {
-        $errors[] = "Invalid auction ID.";
-    } else {
-        $stmt = $conn->prepare("DELETE FROM auction WHERE id = ?");
-        if ($stmt) {
-            $stmt->bind_param("i", $auctionId);
-
-            if ($stmt->execute()) {
-                if ($stmt->affected_rows > 0) {
-                    $success = "Auction #{$auctionId} deleted successfully.";
-                } else {
-                    $errors[] = "Auction not found or already deleted.";
-                }
-            } else {
-                $errors[] = "Error deleting auction: " . $stmt->error;
-            }
-
-            $stmt->close();
-        } else {
-            $errors[] = "Database prepare failed: " . $conn->error;
-        }
+    if ($email === '' || $password === '') {
+        $_SESSION['login_error'] = 'Email and password are required.';
+        unset($_SESSION['login_success']);
+        header('Location: browse.php');
+        exit;
     }
-}
 
-/* -------------------------
-   Fetch all auctions
---------------------------- */
-$auctions = [];
+    $stmt = $conn->prepare("
+        SELECT user_id, username, email, password_hash, role, status
+        FROM users
+        WHERE email = ?
+    ");
+    if ($stmt === false) {
+        $_SESSION['login_error'] = 'Database error.';
+        unset($_SESSION['login_success']);
+        header('Location: browse.php');
+        exit;
+    }
 
-$query = "
-    SELECT 
-        a.id,
-        a.item_id,
-        a.user_id,
-        a.title,
-        a.start_price,
-        a.reserve_price,
-        a.end_date,
-        a.status,
-        u.username AS seller_name,
-        u.email AS seller_email
-    FROM auction a
-    JOIN users u ON a.user_id = u.user_id
-    ORDER BY a.id DESC
-";
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $user   = $result->fetch_assoc();
+    $stmt->close();
 
-$result = $conn->query($query);
+    if ($user && password_verify($password, $user['password_hash'])) {
 
-if ($result) {
-    $auctions = $result->fetch_all(MYSQLI_ASSOC);
-    $result->close();
+        if (isset($user['status']) && $user['status'] === 'banned') {
+            $_SESSION['login_error'] = 'Your account has been banned. Please contact support.';
+            unset($_SESSION['login_success']);
+            header('Location: browse.php');
+            exit;
+        }
+
+        $_SESSION['logged_in']    = true;
+        $_SESSION['user_id']      = $user['user_id'];
+        $_SESSION['username']     = $user['username'];
+        $_SESSION['account_type'] = strtolower($user['role']);
+        $_SESSION['user_status']  = $user['status'];
+
+        $_SESSION['login_success'] = 'Welcome back, ' . $user['username'] . '!';
+        unset($_SESSION['login_error']);
+
+        header('Location: browse.php');
+        exit;
+    } else {
+        $_SESSION['login_error'] = 'Incorrect email or password.';
+        unset($_SESSION['login_success']);
+        header('Location: browse.php');
+        exit;
+    }
 } else {
-    $errors[] = "Database error loading auctions: " . $conn->error;
+    header('Location: browse.php');
+    exit;
 }
-
-include_once 'header.php';
-?>
-
-<div class="container my-5">
-  <h2>Admin: Manage Auctions</h2>
-
-  <?php if (!empty($errors)): ?>
-    <div class="alert alert-danger">
-      <ul>
-      <?php foreach ($errors as $e): ?>
-        <li><?= htmlspecialchars($e) ?></li>
-      <?php endforeach; ?>
-      </ul>
-    </div>
-  <?php endif; ?>
-
-  <?php if ($success): ?>
-    <div class="alert alert-success">
-      <?= htmlspecialchars($success) ?>
-    </div>
-  <?php endif; ?>
-
-  <?php if (!$auctions): ?>
-      <p>No auctions found.</p>
-  <?php else: ?>
-    <table class="table table-bordered table-striped mt-4">
-      <thead class="thead-light">
-        <tr>
-          <th>ID</th>
-          <th>Title</th>
-          <th>Seller</th>
-          <th>Start Price</th>
-          <th>Reserve Price</th>
-          <th>End Date</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-
-      <tbody>
-      <?php foreach ($auctions as $a): ?>
-        <tr>
-          <td><?= (int)$a['id'] ?></td>
-          <td><?= htmlspecialchars($a['title']) ?></td>
-          <td>
-            <?= htmlspecialchars($a['seller_name']) ?><br>
-            <small class="text-muted"><?= htmlspecialchars($a['seller_email']) ?></small>
-          </td>
-          <td>£<?= htmlspecialchars($a['start_price']) ?></td>
-          <td>
-            <?= $a['reserve_price'] === null ? '<span class="text-muted">None</span>' :
-                 '£' . htmlspecialchars($a['reserve_price']) ?>
-          </td>
-          <td><?= htmlspecialchars($a['end_date']) ?></td>
-          <td><?= htmlspecialchars($a['status']) ?></td>
-
-          <td>
-            <form method="post" action="admin_auctions.php"
-                  onsubmit="return confirm('Delete auction #<?= (int)$a['id'] ?> ?');">
-
-              <input type="hidden" name="auction_id" value="<?= (int)$a['id'] ?>">
-              <button type="submit" name="delete_auction"
-                      class="btn btn-sm btn-danger">Delete</button>
-            </form>
-          </td>
-        </tr>
-      <?php endforeach; ?>
-      </tbody>
-    </table>
-  <?php endif; ?>
-</div>
-
-<?php include_once 'footer.php'; ?>
