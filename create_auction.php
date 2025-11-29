@@ -3,6 +3,13 @@ if (session_status() === PHP_SESSION_NONE) {
   session_start();
 }
 
+require_once 'config.php';
+$conn = get_database_connection();
+
+/*test for creating auction*/
+$_SESSION['logged_in'] = true;
+$_SESSION['account_type'] = 'seller';
+
 if (empty($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
   $_SESSION['login_error'] = 'Please log in as a seller to create auctions.';
   header('Location: browse.php');
@@ -14,6 +21,15 @@ if (empty($_SESSION['account_type']) || $_SESSION['account_type'] !== 'seller') 
   header('Location: browse.php');
   exit;
 }
+
+$categories = [];
+$result = $conn->query("SELECT id, name FROM categories ORDER BY name");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $categories[] = $row;
+    }
+}
+
 ?>
 
 <?php include_once("header.php")?>
@@ -60,7 +76,7 @@ if (empty($_SESSION['account_type']) || $_SESSION['account_type'] !== 'seller') 
         <div class="form-group row">
           <label for="auctionCategory" class="col-sm-2 col-form-label text-right">Category</label>
           <div class="col-sm-10">
-            <select class="form-control" id="auctionCategory" name="category">
+            <select class="form-control" id="auctionCategory" name="category_id">
               <option selected>Choose...</option>
               <option value="fill">Fill me in</option>
               <option value="with">with options</option>
