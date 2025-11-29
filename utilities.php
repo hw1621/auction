@@ -72,44 +72,69 @@ function display_time_remaining($interval) {
 
 }
 
-// print_listing_li:
-// This function prints an HTML <li> element containing an auction listing
-function print_listing_li($item_id, $title, $desc, $price, $num_bids, $end_time)
+function print_listing_li($item_id, $title, $desc, $price, $num_bids, $end_time, $category)
 {
-  // Truncate long descriptions
-  if (strlen($desc) > 250) {
-    $desc_shortened = substr($desc, 0, 250) . '...';
-  }
-  else {
+  // 1. 描述截断
+  if (strlen($desc) > 200) {
+    $desc_shortened = substr($desc, 0, 200) . '...';
+  } else {
     $desc_shortened = $desc;
   }
-  
-  // Fix language of bid vs. bids
-  if ($num_bids == 1) {
-    $bid = ' bid';
-  }
-  else {
-    $bid = ' bids';
-  }
-  
-  // Calculate time to auction end
+
+  // 2. 竞拍数量文案
+  $bid_text = ($num_bids == 1) ? '1 bid' : $num_bids . ' bids';
+
+  // 3. 时间计算与样式
   $now = new DateTime();
   if ($now > $end_time) {
-    $time_remaining = 'This auction has ended';
+    $time_remaining = 'Ended';
+    $time_class = 'text-secondary';
+  } else {
+    $interval = $now->diff($end_time);
+    
+    // 如果小于12小时，显示红色加粗，增加紧迫感
+    if ($interval->days == 0 && $interval->h < 12) {
+        $time_remaining = $interval->format('%h h %i m left');
+        $time_class = 'text-danger font-weight-bold';
+    } else {
+        $time_remaining = $interval->format('%a d %h h left');
+        $time_class = 'text-muted';
+    }
   }
-  else {
-    // Get interval:
-    $time_to_end = date_diff($now, $end_time);
-    $time_remaining = display_time_remaining($time_to_end) . ' remaining';
-  }
-  
-  // Print HTML
-  echo('
-    <li class="list-group-item d-flex justify-content-between">
-    <div class="p-2 mr-5"><h5><a href="listing.php?item_id=' . $item_id . '">' . $title . '</a></h5>' . $desc_shortened . '</div>
-    <div class="text-center text-nowrap"><span style="font-size: 1.5em">£' . number_format($price, 2) . '</span><br/>' . $num_bids . $bid . '<br/>' . $time_remaining . '</div>
-  </li>'
-  );
-}
 
-?>
+  $price_formatted = number_format($price, 2);
+
+  echo '
+  <li class="list-group-item d-flex justify-content-between align-items-center p-3 hover-effect">
+    <div class="d-flex flex-row align-items-center w-100">
+        
+        <div class="bg-light d-flex align-items-center justify-content-center rounded mr-4" style="width: 100px; height: 100px; flex-shrink: 0;">
+            <i class="fa fa-image fa-2x text-black-50"></i>
+        </div>
+
+        <div style="flex-grow: 1; min-width: 0;"> <h5 class="mb-1 text-truncate">
+                <a href="listing.php?item_id=' . $item_id . '" class="text-dark text-decoration-none">' . htmlspecialchars($title) . '</a>
+            </h5>
+            
+            <div class="mb-2">
+                <span class="badge badge-pill badge-info"><i class="fa fa-tag"></i> ' . htmlspecialchars($category) . '</span>
+            </div>
+
+            <p class="mb-1 text-muted small" style="line-height: 1.4;">' . htmlspecialchars($desc_shortened) . '</p>
+        </div>
+    </div>
+
+    <div class="text-right ml-4" style="min-width: 140px;">
+        <div class="mb-2">
+            <h4 class="font-weight-bold mb-0 text-primary">£' . $price_formatted . '</h4>
+            <small class="text-muted">' . $bid_text . '</small>
+        </div>
+        
+        <div class="mb-2">
+            <small class="' . $time_class . '"><i class="fa fa-clock-o"></i> ' . $time_remaining . '</small>
+        </div>
+
+        <a href="listing.php?item_id=' . $item_id . '" class="btn btn-outline-primary btn-sm btn-block">View</a>
+    </div>
+  </li>';
+}

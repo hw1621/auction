@@ -33,8 +33,12 @@
             $cat_sql = "SELECT id, name FROM categories ORDER BY name ASC";
             $cat_result = $conn->query($cat_sql);
             $current_cat = $_GET['cat'] ?? 'all';
+            
+            $category_names = []; 
+
             if ($cat_result) {
                 while ($cat_row = $cat_result->fetch_assoc()) {
+                    $category_names[$cat_row['id']] = $cat_row['name'];
                     $selected = ($cat_row['id'] == $current_cat) ? 'selected' : '';
                     echo "<option value='{$cat_row['id']}' {$selected}>{$cat_row['name']}</option>";
                 }
@@ -136,6 +140,7 @@
                 a.start_price, 
                 i.description, 
                 a.end_date, 
+                i.category_id,
                 COUNT(b.id) as num_bids, 
                 COALESCE(MAX(b.amount), a.start_price) as current_price
                " . $data_from . $common_where . $group_by_sql . $order_sql . " LIMIT ? OFFSET ?";
@@ -174,7 +179,10 @@
           $num_bids = $row['num_bids'];
           $end_date = new DateTime($row['end_date']);
 
-          print_listing_li($item_id, $title, $description, $display_price, $num_bids, $end_date);
+          $cat_id = $row['category_id'];
+          $category_name = $category_names[$cat_id];
+
+          print_listing_li($item_id, $title, $description, $display_price, $num_bids, $end_date, $category_name);
       }
     ?>
     </ul>
