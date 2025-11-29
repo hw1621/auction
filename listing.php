@@ -6,13 +6,8 @@
   $item_id = isset($_GET['item_id']) ? (int)$_GET['item_id'] : 0;
 
   // TODO: Use item_id to make a query to the database.
+  $mysqli = get_database_connection();
 
-  $db_host = 'auction.c78qcak427mc.eu-north-1.rds.amazonaws.com';
-  $db_user = 'admin';
-  $db_pass = 'useradmin123';
-  $db_name = 'db_coursework';
-
-  $mysqli = new mysqli($db_host, $db_user, $db_pass, $db_name);
   if ($mysqli->connect_errno) {
     die('Database connection failed: ' . htmlspecialchars($mysqli->connect_error));
   }

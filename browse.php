@@ -1,206 +1,221 @@
 <?php include_once("header.php")?>
 <?php require("utilities.php")?>
 
-<?php
-  // Get info from the URL:
-  $item_id = isset($_GET['item_id']) ? (int)$_GET['item_id'] : 0;
-
-  // TODO: Use item_id to make a query to the database.
-
-  $db_host = 'auction.c78qcak427mc.eu-north-1.rds.amazonaws.com';
-  $db_user = 'admin';
-  $db_pass = 'useradmin123';
-  $db_name = 'db_coursework';
-
-  $mysqli = new mysqli($db_host, $db_user, $db_pass, $db_name);
-  if ($mysqli->connect_errno) {
-    die('Database connection failed: ' . htmlspecialchars($mysqli->connect_error));
-  }
-
-  $sql = "
-    SELECT 
-      i.title,
-      i.description,
-      a.start_price,
-      a.end_date,
-      COALESCE(MAX(b.amount), a.start_price) AS current_price,
-      COUNT(b.id) AS num_bids
-    FROM item i
-      JOIN auction a   ON a.item_id   = i.id
-      LEFT JOIN bid b  ON b.auction_id = a.id
-    WHERE i.id = ?
-    GROUP BY 
-      i.id,
-      i.title,
-      i.description,
-      a.start_price,
-      a.end_date
-  ";
-
-  $stmt = $mysqli->prepare($sql);
-  if (!$stmt) {
-    die('Prepare failed: ' . htmlspecialchars($mysqli->error));
-  }
-
-  $stmt->bind_param("i", $item_id);
-  $stmt->execute();
-  $stmt->bind_result($title, $description, $start_price, $end_time_str, $current_price, $num_bids);
-
-  if ($stmt->fetch()) {
-    $end_time = new DateTime($end_time_str);
-  } else {
-    echo "<div class='container my-5'><div class='alert alert-warning'>Auction not found.</div></div>";
-    $stmt->close();
-    $mysqli->close();
-    include_once("footer.php");
-    exit();
-  }
-
-  $stmt->close();
-  $mysqli->close();
-
-  $now = new DateTime();
-  if ($now < $end_time) {
-    $time_to_end = date_diff($now, $end_time);
-    $time_remaining = ' (in ' . display_time_remaining($time_to_end) . ')';
-  }
-
-  $has_session = true;
-  $watching = false;
-
-?>
-
-
 <div class="container">
 
-<div class="row"> <!-- Row #1 with auction title + watch button -->
-  <div class="col-sm-8"> <!-- Left col -->
-    <h2 class="my-3"><?php echo($title); ?></h2>
-  </div>
-  <div class="col-sm-4 align-self-center"> <!-- Right col -->
-<?php
-  /* The following watchlist functionality uses JavaScript, but could
-     just as easily use PHP as in other places in the code */
-  if ($now < $end_time):
-?>
-    <div id="watch_nowatch" <?php if ($has_session && $watching) echo('style="display: none"');?> >
-      <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addToWatchlist()">+ Add to watchlist</button>
+<h2 class="my-3">Browse listings</h2>
+
+<div id="searchSpecs">
+<form method="get" action="browse.php">
+  <div class="row">
+    <div class="col-md-5 pr-0">
+      <div class="form-group">
+        <label for="keyword" class="sr-only">Search keyword:</label>
+        <div class="input-group">
+          <div class="input-group-prepend">
+            <span class="input-group-text bg-transparent pr-0 text-muted">
+              <i class="fa fa-search"></i>
+            </span>
+          </div>
+          <input type="text" class="form-control border-left-0" id="keyword" name="keyword" 
+                 placeholder="Search for anything" 
+                 value="<?php echo isset($_GET['keyword']) ? htmlspecialchars($_GET['keyword']) : ''; ?>">
+        </div>
+      </div>
     </div>
-    <div id="watch_watching" <?php if (!$has_session || !$watching) echo('style="display: none"');?> >
-      <button type="button" class="btn btn-success btn-sm" disabled>Watching</button>
-      <button type="button" class="btn btn-danger btn-sm" onclick="removeFromWatchlist()">Remove watch</button>
+    <div class="col-md-3 pr-0">
+      <div class="form-group">
+        <label for="cat" class="sr-only">Search within:</label>
+        <select class="form-control" id="cat" name="cat">
+          <option value="all">All categories</option>
+          <?php
+            $conn = get_database_connection();
+            $cat_sql = "SELECT id, name FROM categories ORDER BY name ASC";
+            $cat_result = $conn->query($cat_sql);
+            $current_cat = $_GET['cat'] ?? 'all';
+            if ($cat_result) {
+                while ($cat_row = $cat_result->fetch_assoc()) {
+                    $selected = ($cat_row['id'] == $current_cat) ? 'selected' : '';
+                    echo "<option value='{$cat_row['id']}' {$selected}>{$cat_row['name']}</option>";
+                }
+            }
+          ?>
+        </select>
+      </div>
     </div>
-<?php endif /* Print nothing otherwise */ ?>
-  </div>
-</div>
-
-<div class="row"> <!-- Row #2 with auction description + bidding info -->
-  <div class="col-sm-8"> <!-- Left col with item info -->
-
-    <div class="itemDescription">
-    <?php echo($description); ?>
-    </div>
-
-  </div>
-
-  <div class="col-sm-4"> <!-- Right col with bidding info -->
-
-    <p>
-<?php if ($now > $end_time): ?>
-     This auction ended <?php echo(date_format($end_time, 'j M H:i')) ?>
-     <!-- TODO: Print the result of the auction here? -->
-<?php else: ?>
-     Auction ends <?php echo(date_format($end_time, 'j M H:i') . $time_remaining) ?></p>  
-    <p class="lead">Current bid: £<?php echo(number_format($current_price, 2)) ?></p>
-
-    <!-- Bidding form -->
-    <form method="POST" action="place_bid.php">
+    <div class="col-md-3 pr-0">
       <div class="input-group">
         <div class="input-group-prepend">
-          <span class="input-group-text">£</span>
+          <label class="input-group-text" for="order_by">Sort by</label>
         </div>
-	    <input type="number" class="form-control" id="bid">
+        <select class="custom-select" id="order_by" name="order_by">
+          <option value="pricelow" <?php echo (isset($_GET['order_by']) && $_GET['order_by'] == 'pricelow') ? 'selected' : ''; ?>>Start Price (low to high)</option>
+          <option value="pricehigh" <?php echo (isset($_GET['order_by']) && $_GET['order_by'] == 'pricehigh') ? 'selected' : ''; ?>>Start Price (high to low)</option>
+          <option value="date" <?php echo (!isset($_GET['order_by']) || $_GET['order_by'] == 'date') ? 'selected' : ''; ?>>Soonest expiry</option>
+        </select>
       </div>
-      <button type="submit" class="btn btn-primary form-control">Place bid</button>
-    </form>
-<?php endif ?>
+    </div>
+    <div class="col-md-1 px-0">
+      <button type="submit" class="btn btn-primary">Search</button>
+    </div>
+  </div>
+</form>
+</div> 
 
+</div>
+
+<?php
+  // 1. Get search parameters
+  $keyword = $_GET['keyword'] ?? '';
+  $category = $_GET['cat'] ?? 'all';
+  $ordering = $_GET['order_by'] ?? 'date';
+  $curr_page = $_GET['page'] ?? 1;
+  $results_per_page = 10;
+
+  $common_from = " FROM auction a JOIN item i ON a.item_id = i.id ";
+  $common_where = " WHERE a.status = 'ACTIVE' ";
+
+  // Search parameters
+  $params = [];
+  $types = "";
+
+  // Keyword
+  if (!empty($keyword)) {
+      $common_where .= " AND (a.title LIKE ?) ";
+      $search_term = "%" . $keyword . "%";
+      $params[] = $search_term;
+      $types .= "s";
+  }
+
+  // Category filter
+  if ($category != 'all') {
+      $common_where .= " AND i.category_id = ? ";
+      $params[] = $category;
+      $types .= "i";
+  }
+
+  $count_sql = "SELECT COUNT(DISTINCT a.id) " . $common_from . $common_where;
   
-  </div> <!-- End of right col with bidding info -->
+  $stmt = $conn->prepare($count_sql);
+  if (!empty($params)) {
+      $stmt->bind_param($types, ...$params);
+  }
+  $stmt->execute();
+  $stmt->bind_result($num_results);
+  $stmt->fetch();
+  $stmt->close();
 
-</div> <!-- End of row #2 -->
+  // Page calculation
+  $max_page = ceil($num_results / $results_per_page);
+  if ($max_page == 0) $max_page = 1;
+  if ($curr_page > $max_page) $curr_page = $max_page;
+  if ($curr_page < 1) $curr_page = 1;
+  
+  // 1. Left Join bids table to get bid counts and current price
+  $data_from = $common_from . " LEFT JOIN bid b ON a.id = b.auction_id ";
+  
+  // 2. Ordering and Grouping
+  $group_by_sql = " GROUP BY a.id ";
+  switch ($ordering) {
+      case 'pricelow':
+          $order_sql = " ORDER BY a.start_price ASC ";
+          break;
+      case 'pricehigh':
+          $order_sql = " ORDER BY a.start_price DESC ";
+          break;
+      case 'date':
+      default:
+          $order_sql = " ORDER BY a.end_date ASC ";
+          break;
+  }
 
+  // 3. Final SQL
+  $data_sql = "SELECT 
+                a.id, 
+                a.title, 
+                a.start_price, 
+                i.description, 
+                a.end_date, 
+                COUNT(b.id) as num_bids, 
+                COALESCE(MAX(b.amount), a.start_price) as current_price
+               " . $data_from . $common_where . $group_by_sql . $order_sql . " LIMIT ? OFFSET ?";
 
+  // 4. Pageination params
+  $offset = ($curr_page - 1) * $results_per_page;
+  $params[] = $results_per_page;
+  $params[] = $offset;
+  $types .= "ii";
+
+  $stmt = $conn->prepare($data_sql);
+  if (!empty($params)) {
+      $stmt->bind_param($types, ...$params);
+  }
+  $stmt->execute();
+  $result = $stmt->get_result();
+?>
+
+<div class="container mt-5">
+
+<?php if ($num_results == 0): ?>
+    <div class="alert alert-light text-center">
+        <h4>No results found</h4>
+        <p>Try changing your search keywords or category.</p>
+    </div>
+<?php else: ?>
+    <p class="text-muted mb-4">Found <?php echo $num_results; ?> auctions</p>
+
+    <ul class="list-group">
+    <?php
+      while ($row = $result->fetch_assoc()) {
+          $item_id = $row['id'];
+          $title = $row['title'];
+          $description = mb_strimwidth($row['description'], 0, 100, "...");
+          $display_price = $row['current_price']; 
+          $num_bids = $row['num_bids'];
+          $end_date = new DateTime($row['end_date']);
+
+          print_listing_li($item_id, $title, $description, $display_price, $num_bids, $end_date);
+      }
+    ?>
+    </ul>
+<?php endif; ?>
+
+<?php $stmt->close(); ?>
+
+<nav aria-label="Search results pages" class="mt-5">
+  <ul class="pagination justify-content-center">
+<?php
+  $querystring = "";
+  foreach ($_GET as $key => $value) {
+    if ($key != "page") {
+      $querystring .= "$key=" . urlencode($value) . "&amp;";
+    }
+  }
+  
+  if ($num_results > 0) {
+      $high_page_boost = max(3 - $curr_page, 0);
+      $low_page_boost = max(2 - ($max_page - $curr_page), 0);
+      $low_page = max(1, $curr_page - 2 - $low_page_boost);
+      $high_page = min($max_page, $curr_page + 2 + $high_page_boost);
+      
+      if ($curr_page != 1) {
+        echo('<li class="page-item"><a class="page-link" href="browse.php?' . $querystring . 'page=' . ($curr_page - 1) . '"><i class="fa fa-arrow-left"></i></a></li>');
+      }
+      for ($i = $low_page; $i <= $high_page; $i++) {
+        if ($i == $curr_page) {
+          echo('<li class="page-item active"><span class="page-link">' . $i . '</span></li>');
+        } else {
+          echo('<li class="page-item"><a class="page-link" href="browse.php?' . $querystring . 'page=' . $i . '">' . $i . '</a></li>');
+        }
+      }
+      if ($curr_page != $max_page) {
+        echo('<li class="page-item"><a class="page-link" href="browse.php?' . $querystring . 'page=' . ($curr_page + 1) . '"><i class="fa fa-arrow-right"></i></a></li>');
+      }
+  }
+?>
+  </ul>
+</nav>
+
+</div>
 
 <?php include_once("footer.php")?>
-
-
-<script> 
-// JavaScript functions: addToWatchlist and removeFromWatchlist.
-
-function addToWatchlist(button) {
-  console.log("These print statements are helpful for debugging btw");
-
-  // This performs an asynchronous call to a PHP function using POST method.
-  // Sends item ID as an argument to that function.
-  $.ajax('watchlist_funcs.php', {
-    type: "POST",
-    data: {functionname: 'add_to_watchlist', arguments: [<?php echo($item_id);?>]},
-
-    success: 
-      function (obj, textstatus) {
-        // Callback function for when call is successful and returns obj
-        console.log("Success");
-        var objT = obj.trim();
- 
-        if (objT == "success") {
-          $("#watch_nowatch").hide();
-          $("#watch_watching").show();
-        }
-        else {
-          var mydiv = document.getElementById("watch_nowatch");
-          mydiv.appendChild(document.createElement("br"));
-          mydiv.appendChild(document.createTextNode("Add to watch failed. Try again later."));
-        }
-      },
-
-    error:
-      function (obj, textstatus) {
-        console.log("Error");
-      }
-  }); // End of AJAX call
-
-} // End of addToWatchlist func
-
-function removeFromWatchlist(button) {
-  // This performs an asynchronous call to a PHP function using POST method.
-  // Sends item ID as an argument to that function.
-  $.ajax('watchlist_funcs.php', {
-    type: "POST",
-    data: {functionname: 'remove_from_watchlist', arguments: [<?php echo($item_id);?>]},
-
-    success: 
-      function (obj, textstatus) {
-        // Callback function for when call is successful and returns obj
-        console.log("Success");
-        var objT = obj.trim();
- 
-        if (objT == "success") {
-          $("#watch_watching").hide();
-          $("#watch_nowatch").show();
-        }
-        else {
-          var mydiv = document.getElementById("watch_watching");
-          mydiv.appendChild(document.createElement("br"));
-          mydiv.appendChild(document.createTextNode("Watch removal failed. Try again later."));
-        }
-      },
-
-    error:
-      function (obj, textstatus) {
-        console.log("Error");
-      }
-  }); // End of AJAX call
-
-} // End of addToWatchlist func
-</script>

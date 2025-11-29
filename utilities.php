@@ -6,9 +6,7 @@ use PHPMailer\PHPMailer\Exception;
 // Include configuration constants
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/vendor/autoload.php';
-if (file_exists($autoload)) {
-    require_once $autoload;
-}
+
 /**
  * Send email via PHPMailer and SMTP.
  *
