@@ -172,7 +172,7 @@
     <ul class="list-group">
     <?php
       while ($row = $result->fetch_assoc()) {
-          $item_id = $row['id'];
+          $auction_id = $row['id'];
           $title = $row['title'];
           $description = mb_strimwidth($row['description'], 0, 100, "...");
           $display_price = $row['current_price']; 
@@ -182,7 +182,7 @@
           $cat_id = $row['category_id'];
           $category_name = $category_names[$cat_id];
 
-          print_listing_li($item_id, $title, $description, $display_price, $num_bids, $end_date, $category_name);
+          print_listing_li($auction_id, $title, $description, $display_price, $num_bids, $end_date, $category_name);
       }
     ?>
     </ul>

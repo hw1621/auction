@@ -1,2 +1,132 @@
-/* Any custom CSS you would like to specify for your site can go here. */
+/* =========================================
+   Auction Listing Page - Noble/Elegant Theme
+   ========================================= */
 
+body {
+    background-color: #fcfcfc;
+    color: #333;
+}
+
+/* font style */
+.noble-serif {
+    font-family: 'Times New Roman', Times, serif; 
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+
+/* Image container */
+.lot-image-container {
+    background-color: #f0f0f0;
+    min-height: 500px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e0e0e0;
+}
+
+/* 右侧信息悬浮面板 */
+.lot-info-panel {
+    background: #fff;
+    padding: 40px;
+    border: 1px solid #eee;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.03);
+}
+
+/* Label font style */
+.price-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #888;
+}
+
+.current-price {
+    font-size: 2.5rem;
+    font-family: 'Times New Roman', serif;
+    color: #111;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+/* --- button style --- */
+.btn-noble {
+    background-color: #111;
+    color: #fff;
+    border-radius: 0; /* 直角 */
+    padding: 12px 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+    border: 1px solid #111;
+}
+
+.btn-noble:hover {
+    background-color: #444;
+    border-color: #444;
+    color: #fff;
+    text-decoration: none;
+}
+
+.btn-outline-noble {
+    background-color: transparent;
+    border: 1px solid #ccc;
+    color: #333;
+    border-radius: 0;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    padding: 10px 0;
+    transition: all 0.3s;
+}
+
+.btn-outline-noble:hover, 
+.btn-outline-noble.active {
+    background-color: #f8f8f8;
+    color: #000;
+    border-color: #000;
+}
+
+/* --- 排行榜表格 --- */
+.rank-table th {
+    border-top: none;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    color: #999;
+    font-weight: normal;
+    letter-spacing: 1px;
+}
+
+.rank-badge {
+    background: #111;
+    color: #fff;
+    width: 25px;
+    height: 25px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 0.7rem;
+}
+
+/* Medal color */
+.rank-gold { background: #c5a059; } 
+.rank-silver { background: #9e9e9e; }
+.rank-bronze { background: #cd7f32; }
+
+/* --- input style --- */
+.noble-input {
+    border: none;
+    border-bottom: 2px solid #eee;
+    border-radius: 0;
+    padding: 10px 0;
+    font-size: 1.2rem;
+    background: transparent;
+    width: 100%;
+}
+
+.noble-input:focus {
+    box-shadow: none;
+    border-bottom-color: #111;
+    background: transparent;
+    outline: none;
+}

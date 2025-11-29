@@ -72,7 +72,7 @@ function display_time_remaining($interval) {
 
 }
 
-function print_listing_li($item_id, $title, $desc, $price, $num_bids, $end_time, $category)
+function print_listing_li($auction_id, $title, $desc, $price, $num_bids, $end_time, $category)
 {
   // 1. 描述截断
   if (strlen($desc) > 200) {
@@ -113,7 +113,7 @@ function print_listing_li($item_id, $title, $desc, $price, $num_bids, $end_time,
         </div>
 
         <div style="flex-grow: 1; min-width: 0;"> <h5 class="mb-1 text-truncate">
-                <a href="listing.php?item_id=' . $item_id . '" class="text-dark text-decoration-none">' . htmlspecialchars($title) . '</a>
+                <a href="listing.php?auction_id=' . $auction_id . '" class="text-dark text-decoration-none">' . htmlspecialchars($title) . '</a>
             </h5>
             
             <div class="mb-2">
@@ -134,7 +134,7 @@ function print_listing_li($item_id, $title, $desc, $price, $num_bids, $end_time,
             <small class="' . $time_class . '"><i class="fa fa-clock-o"></i> ' . $time_remaining . '</small>
         </div>
 
-        <a href="listing.php?item_id=' . $item_id . '" class="btn btn-outline-primary btn-sm btn-block">View</a>
+        <a href="listing.php?auction_id=' . $auction_id . '" class="btn btn-outline-primary btn-sm btn-block">View</a>
     </div>
   </li>';
 }
