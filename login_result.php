@@ -17,7 +17,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $stmt = $conn->prepare("SELECT user_id, username, email, password_hash, role FROM users WHERE email = ?");
+    $stmt = $conn->prepare("
+        SELECT user_id, username, email, password_hash, role, status
+        FROM users
+        WHERE email = ?
+    ");
     if ($stmt === false) {
         $_SESSION['login_error'] = 'Database error.';
         unset($_SESSION['login_success']);
@@ -32,10 +36,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->close();
 
     if ($user && password_verify($password, $user['password_hash'])) {
+
+        if (isset($user['status']) && $user['status'] === 'banned') {
+            $_SESSION['login_error'] = 'Your account has been banned. Please contact support.';
+            unset($_SESSION['login_success']);
+            header('Location: browse.php');
+            exit;
+        }
+
         $_SESSION['logged_in']    = true;
         $_SESSION['user_id']      = $user['user_id'];
         $_SESSION['username']     = $user['username'];
-        $_SESSION['account_type'] = $user['role'];
+        $_SESSION['account_type'] = strtolower($user['role']);
+        $_SESSION['user_status']  = $user['status'];
 
         $_SESSION['login_success'] = 'Welcome back, ' . $user['username'] . '!';
         unset($_SESSION['login_error']);
