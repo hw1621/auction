@@ -209,7 +209,12 @@
                         </thead>
                         <tbody>
                             <?php
-                            $history_sql = "SELECT b.amount, b.bid_time, b.bidder_id FROM bid b WHERE b.auction_id = ? ORDER BY b.amount DESC LIMIT 5";
+                            $history_sql = "SELECT b.amount, b.bid_time, u.username, u.email 
+                                            FROM bid b 
+                                            JOIN users u ON b.bidder_id = u.user_id 
+                                            WHERE b.auction_id = ? 
+                                            ORDER BY b.amount DESC 
+                                            LIMIT 5";                            
                             $stmt_hist = $conn->prepare($history_sql);
                             $stmt_hist->bind_param("i", $auction_id);
                             $stmt_hist->execute();
@@ -226,10 +231,17 @@
                                     
                                     $rank_display = ($rank <= 3) ? "<span class='$badge_class'>$rank</span>" : $rank;
                                     $bid_time = new DateTime($bid_row['bid_time']);
+                                    $email = $bid_row['email'];
+                                    $parts = explode("@", $email);
+                                    if (count($parts) == 2) {
+                                        $display_email = substr($parts[0], 0, 2) . "***@" . $parts[1];
+                                    } else {
+                                        $display_email = "Unknown";
+                                    }
                                     
                                     echo "<tr>";
                                     echo "<td>$rank_display</td>";
-                                    echo "<td>User #{$bid_row['bidder_id']}</td>";
+                                    echo "<td style='font-family: sans-serif; color: #555;'>$display_email</td>";                                    
                                     echo "<td class='text-right font-weight-bold'>£" . number_format($bid_row['amount'], 2) . "</td>";
                                     echo "<td class='text-right text-muted'>" . $bid_time->format('H:i') . "</td>";
                                     echo "</tr>";
