@@ -1,0 +1,142 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+if (empty($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true ||
+    empty($_SESSION['account_type']) || $_SESSION['account_type'] !== 'admin') {
+    $_SESSION['login_error'] = 'Admin access only.';
+    header('Location: browse.php');
+    exit;
+}
+
+require_once 'config.php';
+require_once 'utilities.php';
+
+$errors  = [];
+$success = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_auction'])) {
+    $auctionId = (int)($_POST['auction_id'] ?? 0);
+
+    if ($auctionId <= 0) {
+        $errors[] = 'Invalid auction ID.';
+    } else {
+        try {
+            // $stmt = $pdo->prepare("DELETE FROM bids WHERE auction_id = :aid");
+            // $stmt->execute([':aid' => $auctionId]);
+
+            $stmt = $pdo->prepare("DELETE FROM auctions WHERE auction_id = :aid");
+            $stmt->execute([':aid' => $auctionId]);
+
+            if ($stmt->rowCount() > 0) {
+                $success = "Auction #{$auctionId} deleted.";
+            } else {
+                $errors[] = 'Auction not found or already deleted.';
+            }
+        } catch (PDOException $e) {
+            $errors[] = 'Database error when deleting auction: ' . $e->getMessage();
+        }
+    }
+}
+
+try {
+    $stmt = $pdo->query("
+        SELECT a.auction_id,
+               a.title,
+               a.description,
+               a.category,
+               a.start_price,
+               a.reserve_price,
+               a.end_time,
+               a.created_at,
+               a.seller_id,
+               u.username AS seller_name,
+               u.email    AS seller_email
+          FROM auctions a
+          JOIN users u ON a.seller_id = u.user_id
+         ORDER BY a.created_at DESC
+    ");
+    $auctions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $errors[] = 'Database error when fetching auctions: ' . $e->getMessage();
+    $auctions = [];
+}
+
+include_once 'header.php';
+?>
+
+<div class="container my-5">
+  <h2 class="mb-4">Admin: Manage Auctions</h2>
+
+  <?php if (!empty($errors)): ?>
+    <div class="alert alert-danger">
+      <ul class="mb-0">
+        <?php foreach ($errors as $e): ?>
+          <li><?= htmlspecialchars($e) ?></li>
+        <?php endforeach; ?>
+      </ul>
+    </div>
+  <?php endif; ?>
+
+  <?php if ($success): ?>
+    <div class="alert alert-success">
+      <?= htmlspecialchars($success) ?>
+    </div>
+  <?php endif; ?>
+
+  <?php if (!$auctions): ?>
+    <p>No auctions found in the system.</p>
+  <?php else: ?>
+    <table class="table table-striped table-bordered">
+      <thead class="thead-light">
+        <tr>
+          <th>ID</th>
+          <th>Title</th>
+          <th>Seller</th>
+          <th>Category</th>
+          <th>Start price</th>
+          <th>Reserve price</th>
+          <th>End time</th>
+          <th>Created at</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+      <?php foreach ($auctions as $a): ?>
+        <tr>
+          <td><?= (int)$a['auction_id'] ?></td>
+          <td><?= htmlspecialchars($a['title']) ?></td>
+          <td>
+            <?= htmlspecialchars($a['seller_name']) ?><br>
+            <small class="text-muted"><?= htmlspecialchars($a['seller_email']) ?></small>
+          </td>
+          <td><?= htmlspecialchars($a['category']) ?></td>
+          <td>£<?= htmlspecialchars($a['start_price']) ?></td>
+          <td>
+            <?php if ($a['reserve_price'] === null): ?>
+              <span class="text-muted">None</span>
+            <?php else: ?>
+              £<?= htmlspecialchars($a['reserve_price']) ?>
+            <?php endif; ?>
+          </td>
+          <td><?= htmlspecialchars($a['end_time']) ?></td>
+          <td><?= htmlspecialchars($a['created_at']) ?></td>
+          <td>
+            <form method="post" action="admin_auctions.php" onsubmit="return confirm('Are you sure you want to delete this auction?');">
+              <input type="hidden" name="auction_id" value="<?= (int)$a['auction_id'] ?>">
+              <button type="submit"
+                      name="delete_auction"
+                      class="btn btn-sm btn-danger">
+                Delete
+              </button>
+            </form>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+</div>
+
+<?php include_once 'footer.php'; ?>
