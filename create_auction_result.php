@@ -13,18 +13,20 @@ $title = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $title      = trim($_POST['title'] ?? '');
-    $details    = trim($_POST['details'] ?? '');
-    $categoryId = $_POST['category_id'] ?? '';
-    $startPrice = $_POST['start_price'] ?? '';
-    $reserve    = $_POST['reserve_price'] ?? '';
-    $endTimeRaw = $_POST['end_time'] ?? '';
+    $title       = trim($_POST['title'] ?? '');
+    $details     = trim($_POST['details'] ?? '');
+    $categoryId  = (int)($_POST['category'] ?? 0);
+    $startPrice  = trim($_POST['start_price'] ?? '');
+    $reserve     = trim($_POST['reserve_price'] ?? '');
+    $endDateRaw  = trim($_POST['end_date'] ?? '');
 
     if ($title === '') {
         $errors[] = 'Title is required.';
     }
-
-    if ($categoryId === '') {
+    if ($details === '') {
+        $errors[] = 'Details are required.';
+    }
+    if ($categoryId <= 0) {
         $errors[] = 'Category is required.';
     }
 
@@ -32,99 +34,122 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Starting price must be a non-negative number.';
     }
 
-    if ($reserve !== '' && (!is_numeric($reserve) || $reserve < 0)) {
-        $errors[] = 'Reserve price must be a non-negative number (or leave it blank).';
-    }
 
-    $endTime = null;
-    if ($endTimeRaw === '') {
-        $errors[] = 'End date/time is required.';
-    } else {
-        $endTimestamp = strtotime($endTimeRaw);
-        if ($endTimestamp === false) {
-            $errors[] = 'Invalid end date/time format.';
+    $reserveOrNull = null;
+    if ($reserve !== '') {
+        if (!is_numeric($reserve) || $reserve < 0) {
+            $errors[] = 'Reserve price must be a non-negative number (or left blank).';
         } else {
-            $endTime = date('Y-m-d H:i:s', $endTimestamp);
-            $now     = date('Y-m-d H:i:s');
-            if ($endTime <= $now) {
-                $errors[] = 'End date/time must be in the future.';
-            }
+            $reserveOrNull = (float)$reserve;
         }
     }
 
-    $reserveOrNull    = ($reserve === '') ? null : (float)$reserve;
-    $startPriceFloat  = (float)$startPrice;
+    // 结束时间
+    $endDateObj = null;
+    if ($endDateRaw === '') {
+        $errors[] = 'End date is required.';
+    } else {
+        $endDateObj = DateTime::createFromFormat('Y-m-d\TH:i', $endDateRaw);
+        if (!$endDateObj) {
+            $errors[] = 'End date is invalid.';
+        } elseif ($endDateObj <= new DateTime()) {
+            $errors[] = 'End date must be in the future.';
+        }
+    }
 
     if (empty($errors)) {
-        $sellerId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
-        if ($sellerId === 0) {
-            $errors[] = 'You must be logged in to create an auction.';
-        } else {
-            $stmtItem = $conn->prepare("
+        try {
+            $conn->begin_transaction();
+
+            $sellerId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 1;
+
+            $itemSql = "
                 INSERT INTO item (title, description, category_id, seller_id)
                 VALUES (?, ?, ?, ?)
-            ");
-            if ($stmtItem === false) {
-                $errors[] = 'Database error (prepare item): ' . $conn->error;
-            } else {
-                $categoryIdInt = (int)$categoryId;
-                $stmtItem->bind_param("ssii", $title, $details, $categoryIdInt, $sellerId);
-
-                if ($stmtItem->execute()) {
-                    $itemId = $conn->insert_id;
-                    $stmtItem->close();
-
-                    $stmtAuction = $conn->prepare("
-                        INSERT INTO auction
-                            (item_id, user_id, title, start_price, reserve_price, end_date, status, final_price, winner_id)
-                        VALUES
-                            (?, ?, ?, ?, ?, ?, 'active', NULL, NULL)
-                    ");
-                    if ($stmtAuction === false) {
-                        $errors[] = 'Database error (prepare auction): ' . $conn->error;
-                    } else {
-                        $stmtAuction->bind_param(
-                            "iisdds",
-                            $itemId,
-                            $sellerId,
-                            $title,
-                            $startPriceFloat,
-                            $reserveOrNull,
-                            $endTime         
-                        );
-
-                        if ($stmtAuction->execute()) {
-                            $newAuctionId = $conn->insert_id;
-                            $success = true;
-                        } else {
-                            $errors[] = 'Database error (execute auction): ' . $stmtAuction->error;
-                        }
-                        $stmtAuction->close();
-                    }
-                } else {
-                    $errors[] = 'Database error (execute item): ' . $stmtItem->error;
-                    $stmtItem->close();
-                }
+            ";
+            $itemStmt = $conn->prepare($itemSql);
+            if (!$itemStmt) {
+                throw new Exception('Failed to prepare item insert: ' . $conn->error);
             }
+
+            $itemStmt->bind_param('ssii', $title, $details, $categoryId, $sellerId);
+
+            if (!$itemStmt->execute()) {
+                throw new Exception('Failed to insert item: ' . $itemStmt->error);
+            }
+
+            $itemId = $itemStmt->insert_id;
+            $itemStmt->close();
+
+            $startPriceFloat = (float)$startPrice;
+            $endDateMysql    = $endDateObj->format('Y-m-d H:i:s');
+
+            $auctionSql = "
+                INSERT INTO auction (
+                    item_id, user_id, title, start_price, reserve_price, end_date, status
+                ) VALUES (
+                    ?, ?, ?, ?, ?, ?, 'open'
+                )
+            ";
+            $auctionStmt = $conn->prepare($auctionSql);
+            if (!$auctionStmt) {
+                throw new Exception('Failed to prepare auction insert: ' . $conn->error);
+            }
+
+            // 6 个 ? ： item_id, user_id, title, start_price, reserve_price, end_date
+            $auctionStmt->bind_param(
+                'iisdds',
+                $itemId,
+                $sellerId,
+                $title,
+                $startPriceFloat,
+                $reserveOrNull,
+                $endDateMysql
+            );
+
+            if (!$auctionStmt->execute()) {
+                throw new Exception('Failed to insert auction: ' . $auctionStmt->error);
+            }
+
+            $newAuctionId = $auctionStmt->insert_id; // auction.id
+            $auctionStmt->close();
+
+            $conn->commit();
+            $success = true;
+
+        } catch (Exception $e) {
+            $conn->rollback();
+            $errors[] = 'Database error: ' . $e->getMessage();
         }
     }
 
 } else {
     $errors[] = 'Invalid request method.';
 }
+
 ?>
 
-
-<?php 
-if ($success) {
-    header("Location: mylistings.php");
-    exit;
-}
-include_once("header.php")?>
+<?php include_once("header.php")?>
 
 <div class="container my-5">
 
+<?php
 
+/* TODO #1: Connect to MySQL database (perhaps by requiring a file that
+            already does this). */
+
+
+/* TODO #2: Extract form data into variables. Because the form was a 'post'
+            form, its data can be accessed via $POST['auctionTitle'], 
+            $POST['auctionDetails'], etc. Perform checking on the data to
+            make sure it can be inserted into the database. If there is an
+            issue, give some semi-helpful feedback to user. */
+
+
+/* TODO #3: If everything looks good, make the appropriate call to insert
+            data into the database. */
+
+?>
 
 <?php if (!empty($errors)): ?>
     <div class="alert alert-danger">
@@ -136,7 +161,17 @@ include_once("header.php")?>
         </ul>
     </div>
     <a href="create_auction.php" class="btn btn-secondary">Go back to form</a>
-<?php endif; ?> 
+
+<?php elseif ($success): ?>
+    <div class="text-center">
+        Auction successfully created!
+        <?php if ($newAuctionId): ?>
+            <a href="listing.php?item_id=<?= $newAuctionId ?>">View your new listing.</a>
+        <?php else: ?>
+            <a href="mylistings.php">Back to My Listings.</a>
+        <?php endif; ?>
+    </div>
+<?php endif; ?>
 
 </div>
 
