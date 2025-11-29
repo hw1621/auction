@@ -3,13 +3,6 @@ if (session_status() === PHP_SESSION_NONE) {
   session_start();
 }
 
-require_once 'config.php';
-$conn = get_database_connection();
-
-/*test for creating auction*/
-$_SESSION['logged_in'] = true;
-$_SESSION['account_type'] = 'seller';
-
 if (empty($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
   $_SESSION['login_error'] = 'Please log in as a seller to create auctions.';
   header('Location: browse.php');
@@ -21,18 +14,26 @@ if (empty($_SESSION['account_type']) || $_SESSION['account_type'] !== 'seller') 
   header('Location: browse.php');
   exit;
 }
-
-$categories = [];
-$result = $conn->query("SELECT id, name FROM categories ORDER BY name");
-if ($result) {
-    while ($row = $result->fetch_assoc()) {
-        $categories[] = $row;
-    }
-}
-
 ?>
 
 <?php include_once("header.php")?>
+<?php
+$DB_HOST = "auction.c78qcak427mc.eu-north-1.rds.amazonaws.com";
+$DB_USER = "admin";
+$DB_PASS = "useradmin123";
+$DB_NAME = "db_coursework"; 
+$DB_PORT = 3306;
+
+
+$mysqli = new mysqli($DB_HOST, $DB_USER, $DB_PASS, $DB_NAME, $DB_PORT);
+
+if ($mysqli->connect_errno) {
+    $cat_result = false;
+} else {
+    $sql_cat = "SELECT id, name FROM categories ORDER BY name ASC";
+    $cat_result = $mysqli->query($sql_cat);
+}
+?>
 
 <?php
 /* (Uncomment this block to redirect people without selling privileges away from this page)
@@ -76,17 +77,21 @@ if ($result) {
         <div class="form-group row">
           <label for="auctionCategory" class="col-sm-2 col-form-label text-right">Category</label>
           <div class="col-sm-10">
-            <select class="form-control" id="auctionCategory" name="category_id">
+            <select class="form-control" id="auctionCategory" name="category">
               <option value="">Choose...</option>
-              <?php foreach ($categories as $cat): ?>
-                <option value="<?= htmlspecialchars($cat['id']) ?>">
-                  <?= htmlspecialchars($cat['name']) ?>
-                </option>
-              <?php endforeach; ?>
+              <?php
+                if ($cat_result && $cat_result->num_rows > 0) {
+                  while ($cat = $cat_result->fetch_assoc()) {
+                    echo '<option value="' . htmlspecialchars($cat['id']) . '">'
+                      . htmlspecialchars($cat['name'])
+                      . '</option>';
+                  }
+                } else {
+                  echo '<option value="">(No categories found)</option>';
+                }
+              ?>
             </select>
-            <small id="categoryHelp" class="form-text text-muted">
-              <span class="text-danger">*</span> Select a category for this item.
-            </small>
+            <small id="categoryHelp" class="form-text text-muted"><span class="text-danger">* Required.</span> Select a category for this item.</small>
           </div>
         </div>
         <div class="form-group row">
@@ -127,5 +132,11 @@ if ($result) {
 </div>
 
 </div>
+<?php
+if (isset($mysqli) && $mysqli instanceof mysqli) {
+    $mysqli->close();
+}
+?>
 
 <?php include_once("footer.php")?>
+
