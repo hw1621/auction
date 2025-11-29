@@ -1,0 +1,2 @@
+<?php
+echo "Server IP is: " . $_SERVER['SERVER_ADDR'];
