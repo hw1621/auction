@@ -1,18 +1,54 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-// TODO: Extract $_POST variables, check they're OK, and attempt to login.
-// Notify user of success/failure and redirect/give navigation options.
+require_once 'config.php';
+$conn = get_database_connection();
 
-// For now, I will just set session variables and redirect.
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email    = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-session_start();
-$_SESSION['logged_in'] = true;
-$_SESSION['username'] = "test";
-$_SESSION['account_type'] = "buyer";
+    if ($email === '' || $password === '') {
+        $_SESSION['login_error'] = 'Email and password are required.';
+        unset($_SESSION['login_success']);
+        header('Location: browse.php');
+        exit;
+    }
 
-echo('<div class="text-center">You are now logged in! You will be redirected shortly.</div>');
+    $stmt = $conn->prepare("SELECT user_id, username, email, password_hash, role FROM users WHERE email = ?");
+    if ($stmt === false) {
+        $_SESSION['login_error'] = 'Database error.';
+        unset($_SESSION['login_success']);
+        header('Location: browse.php');
+        exit;
+    }
 
-// Redirect to index after 5 seconds
-header("refresh:5;url=index.php");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $user   = $result->fetch_assoc();
+    $stmt->close();
 
-?>
+    if ($user && password_verify($password, $user['password_hash'])) {
+        $_SESSION['logged_in']    = true;
+        $_SESSION['user_id']      = $user['user_id'];
+        $_SESSION['username']     = $user['username'];
+        $_SESSION['account_type'] = $user['role'];
+
+        $_SESSION['login_success'] = 'Welcome back, ' . $user['username'] . '!';
+        unset($_SESSION['login_error']);
+
+        header('Location: browse.php');
+        exit;
+    } else {
+        $_SESSION['login_error'] = 'Incorrect email or password.';
+        unset($_SESSION['login_success']);
+        header('Location: browse.php');
+        exit;
+    }
+} else {
+    header('Location: browse.php');
+    exit;
+}
