@@ -55,11 +55,22 @@
   $time_remaining = $is_ended ? 'Lot Closed' : display_time_remaining(date_diff($now, $end_time));
   $deadline_str = $end_time->format('F j, Y • g:i A');
 
-  // 用户状态
+  // Check if user has added this auction to watch-list
   $has_session = isset($_SESSION['logged_in']) && $_SESSION['logged_in'] == true;
-
-  //TODO: !!!!!!!!!!!!!!!
   $watching = false; 
+  if ($has_session) {
+      $watch_sql = "SELECT COUNT(*) FROM watchlist WHERE user_id = ? AND auction_id = ?";
+      $stmt_watch = $conn->prepare($watch_sql);
+      $stmt_watch->bind_param("ii", $_SESSION['user_id'], $auction_id);
+      $stmt_watch->execute();
+      $stmt_watch->bind_result($watch_count);
+      $stmt_watch->fetch();
+      $stmt_watch->close();
+
+      if ($watch_count > 0) {
+          $watching = true;
+      }
+  }
 ?>
 
 <div class="container mt-5 mb-5">
@@ -179,7 +190,7 @@
                         </div>
                         <div id="watch_watching" <?php if (!$watching) echo('style="display: none"');?> >
                             <button class="btn btn-outline-noble btn-block active" onclick="removeFromWatchlist()">
-                                <i class="fa fa-star"></i> &nbsp; Watching
+                                <i class="fa fa-star" style="color: #ffc107;"></i> &nbsp; Watching
                             </button>
                         </div>
                     <?php endif; ?>
@@ -247,7 +258,10 @@
 function addToWatchlist() {
   $.ajax('watchlist_funcs.php', {
     type: "POST",
-    data: {functionname: 'add_to_watchlist', arguments: [<?php echo($auction_id);?>]},
+    data: {
+        functionname: 'add_to_watchlist', 
+        auction_id: <?php echo($auction_id);?>
+    },
     success: function(obj, textstatus) {
         if (obj.trim() == "success") {
           $("#watch_nowatch").hide();
@@ -256,10 +270,14 @@ function addToWatchlist() {
     }
   });
 }
+
 function removeFromWatchlist() {
   $.ajax('watchlist_funcs.php', {
     type: "POST",
-    data: {functionname: 'remove_from_watchlist', arguments: [<?php echo($auction_id);?>]},
+    data: {
+        functionname: 'remove_from_watchlist', 
+        auction_id: <?php echo($auction_id);?>
+    },
     success: function(obj, textstatus) {
         if (obj.trim() == "success") {
           $("#watch_watching").hide();
