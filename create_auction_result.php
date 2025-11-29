@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $title      = trim($_POST['title'] ?? '');
     $details    = trim($_POST['details'] ?? '');
-    $category   = trim($_POST['category'] ?? '');
+    $category   = trim($_POST['category_id'] ?? '');
     $startPrice = $_POST['start_price'] ?? '';
     $reserve    = $_POST['reserve_price'] ?? '';
     $endTimeRaw = $_POST['end_time'] ?? '';
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Title is required.';
     }
 
-    if ($category === '') {
+    if ($category_id === '') {
         $errors[] = 'Category is required.';
     }
 
@@ -57,36 +57,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         $sellerId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
-
-        $stmt = $conn->prepare("
-            INSERT INTO auctions
-                (seller_id, title, description, category, start_price, reserve_price, end_time, created_at)
-            VALUES
-                (?, ?, ?, ?, ?, ?, ?, NOW())
-        ");
-
-        if ($stmt === false) {
-            $errors[] = 'Database error: failed to prepare statement.';
+        if ($sellerId === 0) {
+            $errors[] = 'You must be logged in to create an auction.';
         } else {
-            $stmt->bind_param(
-                "isssdds",
-                $sellerId,
-                $title,
-                $details,
-                $category,
-                $startPriceFloat,
-                $reserveOrNull,
-                $endTime
-            );
-
-            if ($stmt->execute()) {
-                $newAuctionId = $conn->insert_id;
-                $success = true;
+            $stmtItem = $conn->prepare("
+                INSERT INTO item (title, description, category_id, seller_id)
+                VALUES (?, ?, ?, ?)
+            ");
+            if ($stmtItem === false) {
+                $errors[] = 'Database error (prepare item): ' . $conn->error;
             } else {
-                $errors[] = 'Database error: ' . $stmt->error;
-            }
+                $categoryIdInt = (int)$categoryId;
+                $stmtItem->bind_param("ssii", $title, $details, $categoryIdInt, $sellerId);
 
-            $stmt->close();
+                if ($stmtItem->execute()) {
+                    $itemId = $conn->insert_id;
+                    $stmtItem->close();
+
+                    $stmtAuction = $conn->prepare("
+                        INSERT INTO auction
+                            (item_id, user_id, title, start_price, reserve_price, end_date, status, final_price, winner_id)
+                        VALUES
+                            (?, ?, ?, ?, ?, ?, 'active', NULL, NULL)
+                    ");
+                    if ($stmtAuction === false) {
+                        $errors[] = 'Database error (prepare auction): ' . $conn->error;
+                    } else {
+                        $stmtAuction->bind_param(
+                            "iisdds",
+                            $itemId,
+                            $sellerId,
+                            $title,
+                            $startPriceFloat,
+                            $reserveOrNull,
+                            $endTime         
+                        );
+
+                        if ($stmtAuction->execute()) {
+                            $newAuctionId = $conn->insert_id;
+                            $success = true;
+                        } else {
+                            $errors[] = 'Database error (execute auction): ' . $stmtAuction->error;
+                        }
+                        $stmtAuction->close();
+                    }
+                } else {
+                    $errors[] = 'Database error (execute item): ' . $stmtItem->error;
+                    $stmtItem->close();
+                }
+            }
         }
     }
 
