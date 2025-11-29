@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $title      = trim($_POST['title'] ?? '');
     $details    = trim($_POST['details'] ?? '');
-    $category   = trim($_POST['category'] ?? '');
+    $categoryId = $_POST['category_id'] ?? '';
     $startPrice = $_POST['start_price'] ?? '';
     $reserve    = $_POST['reserve_price'] ?? '';
     $endTimeRaw = $_POST['end_time'] ?? '';
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Title is required.';
     }
 
-    if ($category === '') {
+    if ($categoryId === '') {
         $errors[] = 'Category is required.';
     }
 
@@ -57,36 +57,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         $sellerId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
-
-        $stmt = $conn->prepare("
-            INSERT INTO auctions
-                (seller_id, title, description, category, start_price, reserve_price, end_time, created_at)
-            VALUES
-                (?, ?, ?, ?, ?, ?, ?, NOW())
-        ");
-
-        if ($stmt === false) {
-            $errors[] = 'Database error: failed to prepare statement.';
+        if ($sellerId === 0) {
+            $errors[] = 'You must be logged in to create an auction.';
         } else {
-            $stmt->bind_param(
-                "isssdds",
-                $sellerId,
-                $title,
-                $details,
-                $category,
-                $startPriceFloat,
-                $reserveOrNull,
-                $endTime
-            );
-
-            if ($stmt->execute()) {
-                $newAuctionId = $conn->insert_id;
-                $success = true;
+            $stmtItem = $conn->prepare("
+                INSERT INTO item (title, description, category_id, seller_id)
+                VALUES (?, ?, ?, ?)
+            ");
+            if ($stmtItem === false) {
+                $errors[] = 'Database error (prepare item): ' . $conn->error;
             } else {
-                $errors[] = 'Database error: ' . $stmt->error;
-            }
+                $categoryIdInt = (int)$categoryId;
+                $stmtItem->bind_param("ssii", $title, $details, $categoryIdInt, $sellerId);
 
-            $stmt->close();
+                if ($stmtItem->execute()) {
+                    $itemId = $conn->insert_id;
+                    $stmtItem->close();
+
+                    $stmtAuction = $conn->prepare("
+                        INSERT INTO auction
+                            (item_id, user_id, title, start_price, reserve_price, end_date, status, final_price, winner_id)
+                        VALUES
+                            (?, ?, ?, ?, ?, ?, 'active', NULL, NULL)
+                    ");
+                    if ($stmtAuction === false) {
+                        $errors[] = 'Database error (prepare auction): ' . $conn->error;
+                    } else {
+                        $stmtAuction->bind_param(
+                            "iisdds",
+                            $itemId,
+                            $sellerId,
+                            $title,
+                            $startPriceFloat,
+                            $reserveOrNull,
+                            $endTime         
+                        );
+
+                        if ($stmtAuction->execute()) {
+                            $newAuctionId = $conn->insert_id;
+                            $success = true;
+                        } else {
+                            $errors[] = 'Database error (execute auction): ' . $stmtAuction->error;
+                        }
+                        $stmtAuction->close();
+                    }
+                } else {
+                    $errors[] = 'Database error (execute item): ' . $stmtItem->error;
+                    $stmtItem->close();
+                }
+            }
         }
     }
 
@@ -95,27 +114,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 
-<?php include_once("header.php")?>
+
+<?php 
+if ($success) {
+    header("Location: mylistings.php");
+    exit;
+}
+include_once("header.php")?>
 
 <div class="container my-5">
 
-<?php
 
-/* TODO #1: Connect to MySQL database (perhaps by requiring a file that
-            already does this). */
-
-
-/* TODO #2: Extract form data into variables. Because the form was a 'post'
-            form, its data can be accessed via $POST['auctionTitle'], 
-            $POST['auctionDetails'], etc. Perform checking on the data to
-            make sure it can be inserted into the database. If there is an
-            issue, give some semi-helpful feedback to user. */
-
-
-/* TODO #3: If everything looks good, make the appropriate call to insert
-            data into the database. */
-
-?>
 
 <?php if (!empty($errors)): ?>
     <div class="alert alert-danger">
@@ -127,17 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </ul>
     </div>
     <a href="create_auction.php" class="btn btn-secondary">Go back to form</a>
-
-<?php elseif ($success): ?>
-    <div class="text-center">
-        Auction successfully created!
-        <?php if ($newAuctionId): ?>
-            <a href="listing.php?auction_id=<?= $newAuctionId ?>">View your new listing.</a>
-        <?php else: ?>
-            <a href="mylistings.php">Back to My Listings.</a>
-        <?php endif; ?>
-    </div>
-<?php endif; ?>
+<?php endif; ?> 
 
 </div>
 
