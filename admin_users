@@ -29,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_role'])) {
     if ($targetUserId <= 0 || !in_array($newRole, $validRoles, true)) {
         $errors[] = 'Invalid user or role.';
     } else {
+        // 不允许把自己从 admin 降级
         if ($targetUserId == $_SESSION['user_id'] && $newRole !== 'admin') {
             $errors[] = 'You cannot change your own role.';
         } else {
@@ -49,11 +50,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_role'])) {
 }
 
 /* -------------------------
+   Ban / Unban user
+--------------------------- */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ban_action'])) {
+
+    $targetUserId = (int)($_POST['user_id'] ?? 0);
+    $newStatus    = $_POST['new_status'] ?? '';
+    $validStatuses = ['active', 'banned'];
+
+    if ($targetUserId <= 0 || !in_array($newStatus, $validStatuses, true)) {
+        $errors[] = 'Invalid user or status.';
+    } else {
+        // 不允许管理员把自己拉黑
+        if ($targetUserId == $_SESSION['user_id'] && $newStatus === 'banned') {
+            $errors[] = 'You cannot ban your own account.';
+        } else {
+            $stmt = $conn->prepare("UPDATE users SET status = ? WHERE user_id = ?");
+            if ($stmt) {
+                $stmt->bind_param("si", $newStatus, $targetUserId);
+                if ($stmt->execute()) {
+                    $success = ($newStatus === 'banned')
+                        ? 'User has been banned.'
+                        : 'User has been unbanned.';
+                } else {
+                    $errors[] = 'Database error updating status: ' . $stmt->error;
+                }
+                $stmt->close();
+            } else {
+                $errors[] = 'Database prepare() error (status): ' . $conn->error;
+            }
+        }
+    }
+}
+
+/* -------------------------
    Fetch all users
 --------------------------- */
 $users = [];
 $result = $conn->query("
-    SELECT user_id, username, email, role, created_at
+    SELECT user_id, username, email, role, status, created_at
       FROM users
      ORDER BY created_at DESC
 ");
@@ -70,11 +105,13 @@ if ($result) {
   <h2 class="mb-4">Admin: User Management</h2>
 
   <?php if (!empty($errors)): ?>
-    <div class="alert alert-danger"><ul>
+    <div class="alert alert-danger">
+      <ul class="mb-0">
       <?php foreach ($errors as $e): ?>
         <li><?= htmlspecialchars($e) ?></li>
       <?php endforeach; ?>
-    </ul></div>
+      </ul>
+    </div>
   <?php endif; ?>
 
   <?php if ($success): ?>
@@ -88,8 +125,10 @@ if ($result) {
         <th>Username</th>
         <th>Email</th>
         <th>Role</th>
+        <th>Status</th>
         <th>Member since</th>
         <th>Change role</th>
+        <th>Ban / Unban</th>
       </tr>
     </thead>
     <tbody>
@@ -99,7 +138,19 @@ if ($result) {
         <td><?= htmlspecialchars($u['username']) ?></td>
         <td><?= htmlspecialchars($u['email']) ?></td>
         <td><?= htmlspecialchars($u['role']) ?></td>
+
+        <!-- 状态列 -->
+        <td>
+          <?php if ($u['status'] === 'banned'): ?>
+            <span class="badge badge-danger">banned</span>
+          <?php else: ?>
+            <span class="badge badge-success">active</span>
+          <?php endif; ?>
+        </td>
+
         <td><?= htmlspecialchars($u['created_at']) ?></td>
+
+        <!-- 修改角色 -->
         <td>
           <form method="post" action="admin_users.php" class="form-inline">
             <input type="hidden" name="user_id" value="<?= (int)$u['user_id'] ?>">
@@ -115,6 +166,30 @@ if ($result) {
                     class="btn btn-sm btn-primary">
                 Update
             </button>
+          </form>
+        </td>
+
+        <!-- Ban / Unban 按钮 -->
+        <td>
+          <form method="post" action="admin_users.php" class="form-inline">
+            <input type="hidden" name="user_id" value="<?= (int)$u['user_id'] ?>">
+
+            <?php if ($u['status'] === 'banned'): ?>
+              <input type="hidden" name="new_status" value="active">
+              <button type="submit"
+                      name="ban_action"
+                      class="btn btn-sm btn-success">
+                Unban
+              </button>
+            <?php else: ?>
+              <input type="hidden" name="new_status" value="banned">
+              <button type="submit"
+                      name="ban_action"
+                      class="btn btn-sm btn-danger"
+                      onclick="return confirm('Ban this user?');">
+                Ban
+              </button>
+            <?php endif; ?>
           </form>
         </td>
       </tr>
