@@ -21,7 +21,7 @@ if (session_status() === PHP_SESSION_NONE) {
 <body>
 
 <nav class="navbar navbar-expand-lg navbar-light bg-light mx-2">
-  <a class="navbar-brand" href="browse.php">Site Name</a>
+  <a class="navbar-brand" href="index.php">Site Name</a>
   <ul class="navbar-nav ml-auto">
     <li class="nav-item d-flex align-items-center">
 <?php
