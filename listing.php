@@ -3,34 +3,71 @@
 
 <?php
   // Get info from the URL:
-  $item_id = $_GET['item_id'];
+  $item_id = isset($_GET['item_id']) ? (int)$_GET['item_id'] : 0;
 
   // TODO: Use item_id to make a query to the database.
 
-  // DELETEME: For now, using placeholder data.
-  $title = "Placeholder title";
-  $description = "Description blah blah blah";
-  $current_price = 30.50;
-  $num_bids = 1;
-  $end_time = new DateTime('2020-11-02T00:00:00');
+  $db_host = 'auction.c78qcak427mc.eu-north-1.rds.amazonaws.com';
+  $db_user = 'admin';
+  $db_pass = 'useradmin123';
+  $db_name = 'db_coursework';
 
-  // TODO: Note: Auctions that have ended may pull a different set of data,
-  //       like whether the auction ended in a sale or was cancelled due
-  //       to lack of high-enough bids. Or maybe not.
-  
-  // Calculate time to auction end:
+  $mysqli = new mysqli($db_host, $db_user, $db_pass, $db_name);
+  if ($mysqli->connect_errno) {
+    die('Database connection failed: ' . htmlspecialchars($mysqli->connect_error));
+  }
+
+  $sql = "
+    SELECT 
+      i.title,
+      i.description,
+      a.start_price,
+      a.end_date,
+      COALESCE(MAX(b.amount), a.start_price) AS current_price,
+      COUNT(b.id) AS num_bids
+    FROM item i
+      JOIN auction a   ON a.item_id   = i.id
+      LEFT JOIN bid b  ON b.auction_id = a.id
+    WHERE i.id = ?
+    GROUP BY 
+      i.id,
+      i.title,
+      i.description,
+      a.start_price,
+      a.end_date
+  ";
+
+  $stmt = $mysqli->prepare($sql);
+  if (!$stmt) {
+    die('Prepare failed: ' . htmlspecialchars($mysqli->error));
+  }
+
+  $stmt->bind_param("i", $item_id);
+  $stmt->execute();
+  $stmt->bind_result($title, $description, $start_price, $end_time_str, $current_price, $num_bids);
+
+  if ($stmt->fetch()) {
+    $end_time = new DateTime($end_time_str);
+  } else {
+    echo "<div class='container my-5'><div class='alert alert-warning'>Auction not found.</div></div>";
+    $stmt->close();
+    $mysqli->close();
+    include_once("footer.php");
+    exit();
+  }
+
+  $stmt->close();
+  $mysqli->close();
+
   $now = new DateTime();
-  
   if ($now < $end_time) {
     $time_to_end = date_diff($now, $end_time);
     $time_remaining = ' (in ' . display_time_remaining($time_to_end) . ')';
   }
-  
-  // TODO: If the user has a session, use it to make a query to the database
-  //       to determine if the user is already watching this item.
-  //       For now, this is hardcoded.
+
   $has_session = true;
   $watching = false;
+
 ?>
 
 
