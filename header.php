@@ -74,6 +74,26 @@ if (session_status() === PHP_SESSION_NONE) {
   </ul>
 </nav>
 
+<?php if (!empty($_SESSION['login_error'])): ?>
+  <div class="alert alert-danger alert-dismissible fade show m-2" role="alert">
+    <?php echo htmlspecialchars($_SESSION['login_error']); ?>
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
+  <?php unset($_SESSION['login_error']); ?>
+<?php endif; ?>
+
+<?php if (!empty($_SESSION['login_success'])): ?>
+  <div class="alert alert-success alert-dismissible fade show m-2" role="alert">
+    <?php echo htmlspecialchars($_SESSION['login_success']); ?>
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
+  <?php unset($_SESSION['login_success']); ?>
+<?php endif; ?>
+  
 <div class="modal fade" id="loginModal">
   <div class="modal-dialog">
     <div class="modal-content">
