@@ -9,7 +9,7 @@ $host = "auction.c78qcak427mc.eu-north-1.rds.amazonaws.com";
 $port = 3306;
 $user = "admin";
 $pass = "useradmin123";
-$db   = "auction_db";
+$db   = "auction";
 
 $mysqli = new mysqli($host, $user, $pass, $db, $port);
 if ($mysqli->connect_errno) {
@@ -24,7 +24,7 @@ if ($mysqli->connect_errno) {
 // 读取分类
 $cat_result = $mysqli->query(
     "SELECT categoryNo, categoryName
-     FROM Category
+     FROM category
      ORDER BY categoryName ASC"
 );
 ?>
@@ -56,9 +56,9 @@ if (!$cat_result || $cat_result->num_rows === 0) {
                 a.endTime,
                 COUNT(b.bidNo) AS num_bids,
                 COALESCE(MAX(b.amount), a.startPrice) AS current_price
-            FROM Item AS i
-            JOIN Auction AS a ON i.itemNo = a.itemNo
-            LEFT JOIN Bid AS b ON a.auctionNo = b.auctionNo
+            FROM item AS i
+            JOIN auction AS a ON i.itemNo = a.itemNo
+            LEFT JOIN bid AS b ON a.auctionNo = b.auctionNo
             WHERE i.categoryNo = $catNo
             GROUP BY
                 i.itemNo,
@@ -102,6 +102,10 @@ if (!$cat_result || $cat_result->num_rows === 0) {
 
 $mysqli->close();
 ?>
+
+</div>
+
+<?php include_once("footer.php"); ?>
 
 </div>
 
