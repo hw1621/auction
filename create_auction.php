@@ -17,15 +17,10 @@ if (empty($_SESSION['account_type']) || $_SESSION['account_type'] !== 'seller') 
 ?>
 
 <?php include_once("header.php")?>
+<?php include_once("utilities.php")?>
+
 <?php
-$DB_HOST = "auction.c78qcak427mc.eu-north-1.rds.amazonaws.com";
-$DB_USER = "admin";
-$DB_PASS = "useradmin123";
-$DB_NAME = "db_coursework"; 
-$DB_PORT = 3306;
-
-
-$mysqli = new mysqli($DB_HOST, $DB_USER, $DB_PASS, $DB_NAME, $DB_PORT);
+$mysqli = get_database_connection();
 
 if ($mysqli->connect_errno) {
     $cat_result = false;
