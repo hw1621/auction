@@ -4,6 +4,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once 'config.php';
+require_once 'utilities.php';
 $conn = get_database_connection();
 
 $errors = [];
@@ -80,6 +81,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $startPriceFloat = (float)$startPrice;
     $categoryIdInt   = (int)$categoryId;
 
+    $newImageFilename = null;
+
+    if (empty($errors)) {
+        if (isset($_FILES['auctionImage']) && $_FILES['auctionImage']['error'] === UPLOAD_ERR_OK) {
+
+            $uploadResult = uploadImage($_FILES['auctionImage'], __DIR__ . '/uploads/');
+            if ($uploadResult['error']) {
+                $errors[] = $uploadResult['error'];
+            } else {
+                $newImageFilename = $uploadResult['filename'];
+            }
+        }
+        elseif (isset($_FILES['auctionImage']) && $_FILES['auctionImage']['error'] !== UPLOAD_ERR_NO_FILE) {
+             $errorCode = $_FILES['auctionImage']['error'];
+             if ($errorCode == 1 || $errorCode == 2) {
+                 $errors[] = 'Image is too large.';
+             } else {
+                 $errors[] = 'Image upload error code: ' . $errorCode;
+             }
+        }
+    }
+
     if (empty($errors)) {
         $checkSql = "
             SELECT i.seller_id
@@ -109,22 +132,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $conn->begin_transaction();
 
         try {
-            $sqlItem = "
-                UPDATE item
-                SET title = ?, description = ?, category_id = ?
-                WHERE id = ?
-            ";
-            $stmtItem = $conn->prepare($sqlItem);
-            if ($stmtItem === false) {
-                throw new Exception('Failed to prepare item update: ' . $conn->error);
+            if ($newImageFilename) {
+                $sqlItem = "UPDATE item SET title = ?, description = ?, category_id = ?, image_path = ? WHERE id = ?";
+                $stmtItem = $conn->prepare($sqlItem);
+                $stmtItem->bind_param("ssisi", $title, $details, $categoryIdInt, $newImageFilename, $itemIdInt);
+            } else {
+                $sqlItem = "UPDATE item SET title = ?, description = ?, category_id = ? WHERE id = ?";
+                $stmtItem = $conn->prepare($sqlItem);
+                $stmtItem->bind_param("ssii", $title, $details, $categoryIdInt, $itemIdInt);
             }
-            $stmtItem->bind_param(
-                "ssii",
-                $title,
-                $details,
-                $categoryIdInt,
-                $itemIdInt
-            );
+
             if (!$stmtItem->execute()) {
                 throw new Exception('Failed to execute item update: ' . $stmtItem->error);
             }
@@ -158,6 +175,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (Exception $e) {
             $conn->rollback();
             $errors[] = $e->getMessage();
+
+            if ($newImageFilename && file_exists(__DIR__ . '/uploads/' . $newImageFilename)) {
+                unlink(__DIR__ . '/uploads/' . $newImageFilename);
+            }
         }
     }
 

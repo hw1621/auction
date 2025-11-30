@@ -32,7 +32,8 @@ $sql = "
         i.title AS item_title,
         i.description,
         i.category_id,
-        i.seller_id
+        i.seller_id,
+        i.image_path
     FROM auction a
     JOIN item i ON a.item_id = i.id
     WHERE a.id = ? AND i.seller_id = ?
@@ -78,7 +79,7 @@ include_once("header.php");
 
   <div class="card" style="max-width: 800px; margin: 0 auto;">
     <div class="card-body">
-      <form method="post" action="edit_auction_result.php">
+      <form method="post" action="edit_auction_result.php" enctype="multipart/form-data">
         <input type="hidden" name="auction_id" value="<?= htmlspecialchars($auction['auction_id']) ?>">
         <input type="hidden" name="item_id" value="<?= htmlspecialchars($auction['item_id']) ?>">
         <div class="form-group row">
@@ -99,6 +100,38 @@ include_once("header.php");
             <small class="form-text text-muted">
               More detailed description of the item.
             </small>
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label class="col-sm-2 col-form-label text-right">Image</label>
+          <div class="col-sm-10">
+            <?php 
+              $imagePath = $auction['image_path'];
+              if (!empty($imagePath)) {
+            ?>
+              <div class="mb-3 p-2 bg-light border rounded">
+                  <p class="small text-muted mb-1">Current Image:</p>
+                  <img src="images/<?= htmlspecialchars($imagePath) ?>" alt="Current Item Image" style="max-height: 150px; max-width: 100%;">
+              </div>
+            <?php 
+                }
+            ?>
+            <div class="custom-file">
+              <input type="file" class="custom-file-input" id="auctionImage" name="auctionImage" accept="image/*">
+              <label class="custom-file-label" for="auctionImage">Change image...</label>
+            </div>
+            <small class="form-text text-muted">
+              Upload a new file to replace the current image. Leave blank to keep current image.
+            </small>
+            <div id="previewContainer" style="display: none; margin-top: 10px;">
+              <div class="card" style="width: 12rem;">
+                <img id="imagePreview" src="#" class="card-img-top" alt="New Image Preview" style="height: 150px; object-fit: cover;">
+                <div class="card-body p-1 text-center">
+                    <small class="text-success font-weight-bold">New Selection</small>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -170,3 +203,27 @@ include_once("header.php");
 </div>
 
 <?php include_once("footer.php") ?>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const fileInput = document.getElementById('auctionImage');
+    const previewContainer = document.getElementById('previewContainer');
+    const previewImage = document.getElementById('imagePreview');
+    const label = fileInput.nextElementSibling;
+
+    fileInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            label.innerText = file.name;
+            label.classList.add("selected");
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImage.src = e.target.result;
+                previewContainer.style.display = 'block';
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+});
+</script>

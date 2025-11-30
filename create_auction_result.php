@@ -70,30 +70,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        if (isset($_FILES['auctionImage']) && $_FILES['auctionImage']['error'] === UPLOAD_ERR_OK) {
-            $fileTmpPath = $_FILES['auctionImage']['tmp_name'];
-            $fileName = $_FILES['auctionImage']['name'];
-            $fileSize = $_FILES['auctionImage']['size'];
-            $fileType = $_FILES['auctionImage']['type'];
-            $fileNameCmps = explode(".", $fileName);
-            $fileExtension = strtolower(end($fileNameCmps));
-
-            $allowedfileExtensions = ['jpg', 'jpeg', 'png', 'gif'];
-            if (in_array($fileExtension, $allowedfileExtensions)) {
-                $newFileName = md5(time() . $fileName) . '.' . $fileExtension;
-                $uploadFileDir = __DIR__ . '/uploads/';
-                $dest_path = $uploadFileDir . $newFileName;
-                if (!is_dir($uploadFileDir)) {
-                    mkdir($uploadFileDir, 0755, true);
-                }
-                if (move_uploaded_file($fileTmpPath, $dest_path)) {
-                    $imageFilename = $newFileName;
-                } else {
-                    $errors[] = 'Failed to save image. Please check server permissions for /uploads/ folder.';               
-                }
-            } else {
-                $errors[] = 'Upload failed. Allowed file types: ' . implode(',', $allowedfileExtensions);
-            }
+        $uploadResult = uploadImage($_FILES['auctionImage'], __DIR__ . '/uploads/');
+        
+        if ($uploadResult['error']) {
+            $errors[] = $uploadResult['error'];
+        } else {
+            $imageFilename = $uploadResult['filename'];
         }
     }
 

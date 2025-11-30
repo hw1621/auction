@@ -74,17 +74,14 @@ function display_time_remaining($interval) {
 
 function print_listing_li($auction_id, $title, $desc, $price, $num_bids, $end_time, $category)
 {
-  // 1. 描述截断
   if (strlen($desc) > 200) {
     $desc_shortened = substr($desc, 0, 200) . '...';
   } else {
     $desc_shortened = $desc;
   }
 
-  // 2. 竞拍数量文案
   $bid_text = ($num_bids == 1) ? '1 bid' : $num_bids . ' bids';
 
-  // 3. 时间计算与样式
   $now = new DateTime();
   if ($now > $end_time) {
     $time_remaining = 'Ended';
@@ -92,7 +89,6 @@ function print_listing_li($auction_id, $title, $desc, $price, $num_bids, $end_ti
   } else {
     $interval = $now->diff($end_time);
     
-    // 如果小于12小时，显示红色加粗，增加紧迫感
     if ($interval->days == 0 && $interval->h < 12) {
         $time_remaining = $interval->format('%h h %i m left');
         $time_class = 'text-danger font-weight-bold';
@@ -101,6 +97,60 @@ function print_listing_li($auction_id, $title, $desc, $price, $num_bids, $end_ti
         $time_class = 'text-muted';
     }
   }
+
+  /**
+ * @param array $fileInput $_FILES['key']
+ * @param string $uploadDir
+ * @return array ['filename' => string|null, 'error' => string|null]
+ */
+function uploadImage($fileInput, $uploadDir) {
+  $result = [
+      'filename' => null,
+      'error' => null
+  ];
+
+  if (!isset($fileInput) || $fileInput['error'] === UPLOAD_ERR_NO_FILE) {
+      return $result; 
+  }
+
+  if ($fileInput['error'] !== UPLOAD_ERR_OK) {
+      $errorCode = $fileInput['error'];
+      if ($errorCode == 1 || $errorCode == 2) {
+          $result['error'] = 'Image is too large (Check server config).';
+      } else {
+          $result['error'] = 'Image upload failed with error code: ' . $errorCode;
+      }
+      return $result;
+  }
+
+  $tmpName = $fileInput['tmp_name'];
+  $originalName = $fileInput['name'];
+  $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+  $allowed = ['jpg', 'jpeg', 'png', 'gif'];
+
+  if (!in_array($ext, $allowed)) {
+      $result['error'] = 'Invalid file type. Only JPG, PNG, GIF allowed.';
+      return $result;
+  }
+
+  if (!is_dir($uploadDir)) {
+      if (!mkdir($uploadDir, 0755, true)) {
+          $result['error'] = 'Failed to create upload directory.';
+          return $result;
+      }
+  }
+
+  $newFileName = uniqid('img_') . '.' . $ext;
+  $destPath = $uploadDir . $newFileName;
+
+  if (move_uploaded_file($tmpName, $destPath)) {
+      $result['filename'] = $newFileName;
+  } else {
+      $result['error'] = 'Failed to save image. Check server permissions.';
+  }
+
+  return $result;
+}
 
   $price_formatted = number_format($price, 2);
 
