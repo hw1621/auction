@@ -17,6 +17,7 @@
       i.title,
       i.description,
       i.seller_id,
+      u.email AS seller_email,
       a.start_price,
       a.end_date,
       a.status,
@@ -24,6 +25,7 @@
       COUNT(b.id) AS num_bids
     FROM auction a
     JOIN item i ON a.item_id = i.id
+    JOIN users u ON i.seller_id = u.user_id
     LEFT JOIN bid b ON a.id = b.auction_id
     WHERE a.id = ?
     GROUP BY a.id
@@ -48,6 +50,7 @@
   $current_price = $auction_data['current_price'];
   $num_bids = $auction_data['num_bids'];
   $seller_id = $auction_data['seller_id'];
+  $seller_email = $auction_data['seller_email'];
   $end_time = new DateTime($auction_data['end_date']);
   $now = new DateTime();
 
@@ -99,7 +102,7 @@
                 
                 <h5 class="noble-serif mb-3">Seller Information</h5>
                 <p class="text-muted">
-                    Seller ID: <strong>#<?php echo $seller_id; ?></strong><br>
+                    Seller Email: <strong><?php echo $seller_email; ?></strong><br>
                     <small>Verified Seller</small>
                 </p>
             </div>
