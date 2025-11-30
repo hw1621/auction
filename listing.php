@@ -21,6 +21,7 @@
       a.start_price,
       a.end_date,
       a.status,
+      a.is_anonymous,
       COALESCE(MAX(b.amount), a.start_price) AS current_price,
       COUNT(b.id) AS num_bids
     FROM auction a
@@ -45,20 +46,21 @@
     exit();
   }
 
-  $title = $auction_data['title'];
-  $description = $auction_data['description'];
-  $current_price = $auction_data['current_price'];
-  $num_bids = $auction_data['num_bids'];
-  $seller_id = $auction_data['seller_id'];
-  $seller_email = $auction_data['seller_email'];
+  $title            = $auction_data['title'];
+  $description      = $auction_data['description'];
+  $current_price    = $auction_data['current_price'];
+  $num_bids         = $auction_data['num_bids'];
+  $seller_id        = $auction_data['seller_id'];
+  $seller_email     = $auction_data['seller_email'];
+  $auction_is_anon  = !empty($auction_data['is_anonymous']);
+
   $end_time = new DateTime($auction_data['end_date']);
-  $now = new DateTime();
+  $now      = new DateTime();
 
   $is_ended = ($now >= $end_time);
   $time_remaining = $is_ended ? 'Lot Closed' : display_time_remaining(date_diff($now, $end_time));
   $deadline_str = $end_time->format('F j, Y • g:i A');
 
-  // Check if user has added this auction to watch-list
   $has_session = isset($_SESSION['logged_in']) && $_SESSION['logged_in'] == true;
   $watching = false; 
   if ($has_session) {
@@ -74,6 +76,9 @@
           $watching = true;
       }
   }
+
+  $display_title = $auction_is_anon ? '[Anonymous] ' . $title : $title;
+  $display_seller_email = $auction_is_anon ? 'Hidden for anonymous auction' : $seller_email;
 ?>
 
 <div class="container mt-5 mb-5">
@@ -102,7 +107,12 @@
                 
                 <h5 class="noble-serif mb-3">Seller Information</h5>
                 <p class="text-muted">
-                    Seller Email: <strong><?php echo $seller_email; ?></strong><br>
+                    <?php if ($auction_is_anon): ?>
+                        Seller: <strong>Anonymous Seller</strong><br>
+                        Seller Email: <strong>Hidden for anonymous auction</strong><br>
+                    <?php else: ?>
+                        Seller Email: <strong><?php echo htmlspecialchars($seller_email); ?></strong><br>
+                    <?php endif; ?>
                     <small>Verified Seller</small>
                 </p>
             </div>
@@ -111,7 +121,13 @@
         <div class="col-lg-5">
             <div class="lot-info-panel sticky-top" style="top: 20px; z-index: 1;">
                 
-                <h1 class="noble-serif mb-3" style="line-height: 1.2;"><?php echo htmlspecialchars($title); ?></h1>
+                <h1 class="noble-serif mb-3" style="line-height: 1.2;"><?php echo htmlspecialchars($display_title); ?></h1>
+
+                <?php if ($auction_is_anon): ?>
+                  <div class="alert alert-info py-2 mb-4">
+                    This is an anonymous auction. Seller and bidders may be hidden in public views.
+                  </div>
+                <?php endif; ?>
 
                 <div class="mb-4 pb-4 border-bottom">
                     <span class="price-label d-block mb-1 text-danger" style="letter-spacing: 1px;">
@@ -168,6 +184,19 @@
                                 </div>
                                 <small class="text-muted mt-2 d-block">Minimum bid: £<?php echo number_format($current_price + 0.01, 2); ?></small>
                             </div>
+
+                            <div class="form-group form-check mb-4">
+                              <input
+                                type="checkbox"
+                                class="form-check-input"
+                                id="bidIsAnonymous"
+                                name="bid_is_anonymous"
+                                value="1"
+                              >
+                              <label class="form-check-label" for="bidIsAnonymous">
+                                Place this bid anonymously
+                              </label>
+                            </div>
                             
                             <input type="hidden" name="auction_id" value="<?php echo $auction_id; ?>">
                             <button type="submit" class="btn btn-noble btn-block">Place Bid</button>
@@ -212,12 +241,18 @@
                         </thead>
                         <tbody>
                             <?php
-                            $history_sql = "SELECT b.amount, b.bid_time, u.username, u.email 
-                                            FROM bid b 
-                                            JOIN users u ON b.bidder_id = u.user_id 
-                                            WHERE b.auction_id = ? 
-                                            ORDER BY b.amount DESC 
-                                            LIMIT 5";                            
+                            $history_sql = "
+                              SELECT 
+                                b.amount, 
+                                b.bid_time, 
+                                b.is_anonymous,
+                                u.email 
+                              FROM bid b 
+                              JOIN users u ON b.bidder_id = u.user_id 
+                              WHERE b.auction_id = ? 
+                              ORDER BY b.amount DESC 
+                              LIMIT 5
+                            ";                            
                             $stmt_hist = $conn->prepare($history_sql);
                             $stmt_hist->bind_param("i", $auction_id);
                             $stmt_hist->execute();
@@ -234,17 +269,22 @@
                                     
                                     $rank_display = ($rank <= 3) ? "<span class='$badge_class'>$rank</span>" : $rank;
                                     $bid_time = new DateTime($bid_row['bid_time']);
-                                    $email = $bid_row['email'];
-                                    $parts = explode("@", $email);
-                                    if (count($parts) == 2) {
-                                        $display_email = substr($parts[0], 0, 2) . "***@" . $parts[1];
+
+                                    if ($auction_is_anon || !empty($bid_row['is_anonymous'])) {
+                                        $bidder_display = "Bidder #{$rank}";
                                     } else {
-                                        $display_email = "Unknown";
+                                        $email = $bid_row['email'];
+                                        $parts = explode("@", $email);
+                                        if (count($parts) == 2) {
+                                            $bidder_display = substr($parts[0], 0, 2) . "***@" . $parts[1];
+                                        } else {
+                                            $bidder_display = "Unknown";
+                                        }
                                     }
                                     
                                     echo "<tr>";
                                     echo "<td>$rank_display</td>";
-                                    echo "<td style='font-family: sans-serif; color: #555;'>$display_email</td>";                                    
+                                    echo "<td style='font-family: sans-serif; color: #555;'>" . htmlspecialchars($bidder_display) . "</td>";                                    
                                     echo "<td class='text-right font-weight-bold'>£" . number_format($bid_row['amount'], 2) . "</td>";
                                     echo "<td class='text-right text-muted'>" . $bid_time->format('H:i') . "</td>";
                                     echo "</tr>";
