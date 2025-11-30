@@ -16,16 +16,17 @@ if (empty($_SESSION['logged_in']) || $_SESSION['account_type'] !== 'buyer') {
 
 $userId = (int)$_SESSION['user_id'];
 
-
 $sql = "
     SELECT 
-        b.id        AS bid_id,
-        b.amount    AS bid_amount,
+        b.id         AS bid_id,
+        b.amount     AS bid_amount,
         b.bid_time,
-        a.id        AS auction_id,
+        b.is_anonymous AS bid_is_anonymous,
+        a.id         AS auction_id,
         a.end_date,
         a.status,
-        i.title     AS item_title
+        a.is_anonymous AS auction_is_anonymous,
+        i.title      AS item_title
     FROM bid b
     JOIN auction a ON b.auction_id = a.id
     JOIN item i    ON a.item_id    = i.id
@@ -58,23 +59,30 @@ include_once("header.php");
           <th>Bid time</th>
           <th>Auction ends</th>
           <th>Status</th>
+          <th>Anonymity</th>
         </tr>
       </thead>
       <tbody>
         <?php while ($row = $result->fetch_assoc()): ?>
+          <?php
+          $title = $row['item_title'];
+          if (!empty($row['auction_is_anonymous'])) {
+              $title = '[Anonymous] ' . $title;
+          }
+
+          if (!empty($row['bid_is_anonymous'])) {
+              $anonymityLabel = 'Anonymous bid';
+          } else {
+              $anonymityLabel = 'Public bid';
+          }
+          ?>
           <tr>
-            <td>
-              <?= htmlspecialchars($row['item_title']) ?>
-              <!-- listing.php 做好了，可以改成链接：
-              <a href="listing.php?auction_id=<?= $row['auction_id'] ?>">
-                <?= htmlspecialchars($row['item_title']) ?>
-              </a>
-              -->
-            </td>
+            <td><?= htmlspecialchars($title) ?></td>
             <td>£<?= htmlspecialchars(number_format($row['bid_amount'], 2)) ?></td>
             <td><?= htmlspecialchars($row['bid_time']) ?></td>
             <td><?= htmlspecialchars($row['end_date']) ?></td>
             <td><?= htmlspecialchars($row['status']) ?></td>
+            <td><?= htmlspecialchars($anonymityLabel) ?></td>
           </tr>
         <?php endwhile; ?>
       </tbody>
