@@ -9,11 +9,18 @@ $conn = get_database_connection();
 $errors = [];
 $success = false;
 
-if (!isset($_SESSION['user_id'])) {
-    $_SESSION['user_id'] = 1; //测试
-    $_SESSION['account_type'] = 'seller';
-    $_SESSION['logged_in'] = true;
+if (empty($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+  $_SESSION['login_error'] = 'Please log in as a seller to create auctions.';
+  header('Location: browse.php');
+  exit;
 }
+
+if (empty($_SESSION['account_type']) || $_SESSION['account_type'] !== 'seller') {
+  $_SESSION['login_error'] = 'Only sellers can create auctions.';
+  header('Location: browse.php');
+  exit;
+}
+
 $userId = (int)($_SESSION['user_id'] ?? 0);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

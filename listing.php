@@ -149,7 +149,7 @@
                                 <label for="bid" class="price-label text-dark">Your Maximum Bid</label>
                                 <div class="d-flex align-items-end">
                                     <span class="h4 mb-2 mr-2">£</span>
-                                    <input type="number" class="form-control noble-input" id="bid" name="bid_amount" 
+                                    <input type="number" class="form-control noble-input" id="bid" name="amount" 
                                            min="<?php echo $current_price + 0.01; ?>" step="0.01" required placeholder="<?php echo number_format($current_price + 10, 2); ?>">
                                 </div>
                                 <small class="text-muted mt-2 d-block">Minimum bid: £<?php echo number_format($current_price + 0.01, 2); ?></small>

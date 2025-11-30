@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $conn->begin_transaction();
 
-            $sellerId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 1;
+            $sellerId = $sellerId = (int)$_SESSION['user_id'];
 
             $itemSql = "
                 INSERT INTO item (title, description, category_id, seller_id)
@@ -166,7 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="text-center">
         Auction successfully created!
         <?php if ($newAuctionId): ?>
-            <a href="listing.php?item_id=<?= $newAuctionId ?>">View your new listing.</a>
+            <a href="mylistings.php?auction_id=<?= $newAuctionId ?>">View your new listing.</a>
         <?php else: ?>
             <a href="mylistings.php">Back to My Listings.</a>
         <?php endif; ?>

@@ -8,11 +8,15 @@ require_once 'utilities.php';
 
 $conn = get_database_connection();
 
-/*test*/
-$_SESSION['user_id']=1;
 
 if (empty($_SESSION['user_id'])) {
     $_SESSION['login_error'] = 'Please log in to view your listings.';
+    header('Location: browse.php');
+    exit;
+}
+
+if (($_SESSION['account_type'] ?? '') !== 'seller') {
+    $_SESSION['login_error'] = 'Only sellers can view their listings.';
     header('Location: browse.php');
     exit;
 }

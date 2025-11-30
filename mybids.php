@@ -8,11 +8,10 @@ require_once 'utilities.php';
 
 $conn = get_database_connection();
 
-// 测试阶段
-if (!isset($_SESSION['user_id'])) {
-    $_SESSION['user_id']      = 1;
-    $_SESSION['account_type'] = 'buyer';
-    $_SESSION['logged_in']    = true;
+if (empty($_SESSION['logged_in']) || $_SESSION['account_type'] !== 'buyer') {
+    $_SESSION['login_error'] = 'Please log in as a buyer to view your bids.';
+    header('Location: browse.php');
+    exit;
 }
 
 $userId = (int)$_SESSION['user_id'];

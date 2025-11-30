@@ -6,11 +6,10 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once 'config.php';
 $conn = get_database_connection();
 
-// 测试阶段
-if (!isset($_SESSION['user_id'])) {
-    $_SESSION['user_id']      = 1;
-    $_SESSION['account_type'] = 'buyer';
-    $_SESSION['logged_in']    = true;
+if (empty($_SESSION['logged_in']) || $_SESSION['account_type'] !== 'buyer') {
+    $_SESSION['login_error'] = 'You must be logged in as a buyer to place bids.';
+    header('Location: browse.php');
+    exit;
 }
 
 $userId = (int)$_SESSION['user_id'];
@@ -59,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 if (!empty($auctionRow['status']) && $auctionRow['status'] !== 'active') {
                     $errors[] = 'This auction is not active.';
-                }
+                } 
             }
             $stmtA->close();
         }

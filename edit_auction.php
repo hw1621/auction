@@ -8,12 +8,11 @@ require_once 'utilities.php';
 
 $conn = get_database_connection();
 
-if (!isset($_SESSION['user_id'])) {
-    $_SESSION['user_id'] = 1;      // 测试用
+if (empty($_SESSION['logged_in']) || $_SESSION['account_type'] !== 'seller') {
+    $_SESSION['login_error'] = 'Only sellers can edit their listings.';
+    header('Location: browse.php');
+    exit;
 }
-$_SESSION['account_type'] = 'seller'; 
-$_SESSION['logged_in'] = true; 
-
 
 $userId = (int)$_SESSION['user_id'];
 
