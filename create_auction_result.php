@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $categoryId  = (int)($_POST['category'] ?? 0);
     $startPrice  = trim($_POST['start_price'] ?? '');
     $reserve     = trim($_POST['reserve_price'] ?? '');
-    $endDateRaw  = trim($_POST['end_time'] ?? '');
+    $endDateRaw  = trim($_POST['end_date'] ?? '');
     $isAnonymous = isset($_POST['is_anonymous']) ? 1 : 0;
 
     if ($title === '') {
