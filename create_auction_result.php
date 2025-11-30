@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 INSERT INTO auction (
                     item_id, user_id, title, start_price, reserve_price, end_date, status, is_anonymous
                 ) VALUES (
-                    ?, ?, ?, ?, ?, ?, 'open', ?
+                    ?, ?, ?, ?, ?, ?, 'active', ?
                 )
             ";
             $auctionStmt = $conn->prepare($auctionSql);
