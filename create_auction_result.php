@@ -18,7 +18,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $categoryId  = (int)($_POST['category'] ?? 0);
     $startPrice  = trim($_POST['start_price'] ?? '');
     $reserve     = trim($_POST['reserve_price'] ?? '');
-    $endDateRaw  = trim($_POST['end_date'] ?? '');
+    $endDateRaw  = trim($_POST['end_time'] ?? '');
+    $isAnonymous = isset($_POST['is_anonymous']) ? 1 : 0;
 
     if ($title === '') {
         $errors[] = 'Title is required.';
@@ -34,7 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Starting price must be a non-negative number.';
     }
 
-
     $reserveOrNull = null;
     if ($reserve !== '') {
         if (!is_numeric($reserve) || $reserve < 0) {
@@ -44,7 +44,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // 结束时间
     $endDateObj = null;
     if ($endDateRaw === '') {
         $errors[] = 'End date is required.';
@@ -86,9 +85,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $auctionSql = "
                 INSERT INTO auction (
-                    item_id, user_id, title, start_price, reserve_price, end_date, status
+                    item_id, user_id, title, start_price, reserve_price, end_date, status, is_anonymous
                 ) VALUES (
-                    ?, ?, ?, ?, ?, ?, 'open'
+                    ?, ?, ?, ?, ?, ?, 'open', ?
                 )
             ";
             $auctionStmt = $conn->prepare($auctionSql);
@@ -96,22 +95,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception('Failed to prepare auction insert: ' . $conn->error);
             }
 
-            // 6 个 ? ： item_id, user_id, title, start_price, reserve_price, end_date
             $auctionStmt->bind_param(
-                'iisdds',
+                'iisddsi',
                 $itemId,
                 $sellerId,
                 $title,
                 $startPriceFloat,
                 $reserveOrNull,
-                $endDateMysql
+                $endDateMysql,
+                $isAnonymous
             );
 
             if (!$auctionStmt->execute()) {
                 throw new Exception('Failed to insert auction: ' . $auctionStmt->error);
             }
 
-            $newAuctionId = $auctionStmt->insert_id; // auction.id
+            $newAuctionId = $auctionStmt->insert_id;
             $auctionStmt->close();
 
             $conn->commit();
@@ -132,24 +131,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php include_once("header.php")?>
 
 <div class="container my-5">
-
-<?php
-
-/* TODO #1: Connect to MySQL database (perhaps by requiring a file that
-            already does this). */
-
-
-/* TODO #2: Extract form data into variables. Because the form was a 'post'
-            form, its data can be accessed via $POST['auctionTitle'], 
-            $POST['auctionDetails'], etc. Perform checking on the data to
-            make sure it can be inserted into the database. If there is an
-            issue, give some semi-helpful feedback to user. */
-
-
-/* TODO #3: If everything looks good, make the appropriate call to insert
-            data into the database. */
-
-?>
 
 <?php if (!empty($errors)): ?>
     <div class="alert alert-danger">
