@@ -97,25 +97,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $auctionSql = "
                 INSERT INTO auction (
-                    item_id, user_id, title, start_price, reserve_price, end_date, status, is_anonymous
+                    item_id, 
+                    user_id, 
+                    title, 
+                    start_price, 
+                    reserve_price, 
+                    end_date, 
+                    status, 
+                    is_anonymous,
+                    hide_bidders
                 ) VALUES (
-                    ?, ?, ?, ?, ?, ?, 'active', ?
+                    ?, ?, ?, ?, ?, ?, 'active', ?, ?
                 )
             ";
+            
             $auctionStmt = $conn->prepare($auctionSql);
             if (!$auctionStmt) {
                 throw new Exception('Failed to prepare auction insert: ' . $conn->error);
             }
 
             $auctionStmt->bind_param(
-                'iisddsi',
+                'iisddsii',
                 $itemId,
                 $sellerId,
                 $title,
                 $startPriceFloat,
                 $reserveOrNull,
                 $endDateMysql,
-                $isAnonymous
+                $isAnonymous,
+                $hideBidders
             );
 
             if (!$auctionStmt->execute()) {
