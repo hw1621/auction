@@ -132,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $errors[] = 'Database error (prepare update bid): ' . $conn->error;
                 } else {
                     $bidId = (int)$existingBid['id'];
-                    $stmtU->bind_param("dsii", $amountFloat, $now, $bidIsAnonymous, $bidId);
+                $stmtU->bind_param("dsii", $amountFloat, $now, $bidIsAnonymous, $bidId);
                     if ($stmtU->execute()) {
                         $success = true;
                     } else {
@@ -150,7 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($stmtI === false) {
                 $errors[] = 'Database error (prepare insert bid): ' . $conn->error;
             } else {
-                $stmtI->bind_param("diisi", $amountFloat, $userId, $auctionIdInt, $now, $bidIsAnonymous);
+            $stmtI->bind_param("diisi", $amountFloat, $userId, $auctionIdInt, $now, $bidIsAnonymous);
                 if ($stmtI->execute()) {
                     $success = true;
                 } else {
