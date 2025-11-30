@@ -112,7 +112,7 @@ include_once("header.php");
             ?>
               <div class="mb-3 p-2 bg-light border rounded">
                   <p class="small text-muted mb-1">Current Image:</p>
-                  <img src="images/<?= htmlspecialchars($imagePath) ?>" alt="Current Item Image" style="max-height: 150px; max-width: 100%;">
+                  <img src="uploads/<?= htmlspecialchars($imagePath) ?>" alt="Current Item Image" style="max-height: 150px; max-width: 100%;">
               </div>
             <?php 
                 }
