@@ -2,85 +2,89 @@
 <?php require("utilities.php")?>
 
 <?php
-  $auction_id = isset($_GET['auction_id']) ? (int)$_GET['auction_id'] : 0;
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-  if ($auction_id == 0) {
-      echo "<div class='container my-5'><div class='alert alert-danger'>Invalid Auction ID.</div></div>";
-      include_once("footer.php");
-      exit();
-  }
+$auction_id = isset($_GET['auction_id']) ? (int)$_GET['auction_id'] : 0;
 
-  $conn = get_database_connection();
-
-  $sql = "
-    SELECT 
-      i.title,
-      i.description,
-      i.seller_id,
-      u.email AS seller_email,
-      a.start_price,
-      a.end_date,
-      a.status,
-      a.is_anonymous,
-      a.hide_bidders,
-      COALESCE(MAX(b.amount), a.start_price) AS current_price,
-      COUNT(b.id) AS num_bids
-    FROM auction a
-    JOIN item i ON a.item_id = i.id
-    JOIN users u ON i.seller_id = u.user_id
-    LEFT JOIN bid b ON a.id = b.auction_id
-    WHERE a.id = ?
-    GROUP BY a.id
-  ";
-
-  $stmt = $conn->prepare($sql);
-  if (!$stmt) { die('Prepare failed: ' . $conn->error); }
-  $stmt->bind_param("i", $auction_id);
-  $stmt->execute();
-  $result = $stmt->get_result();
-  $auction_data = $result->fetch_assoc();
-  $stmt->close();
-
-  if (!$auction_data) {
-    echo "<div class='container my-5 text-center'><h3>Lot not found.</h3></div>";
+if ($auction_id == 0) {
+    echo "<div class='container my-5'><div class='alert alert-danger'>Invalid Auction ID.</div></div>";
     include_once("footer.php");
     exit();
-  }
+}
 
-  $title            = $auction_data['title'];
-  $description      = $auction_data['description'];
-  $current_price    = $auction_data['current_price'];
-  $num_bids         = $auction_data['num_bids'];
-  $seller_id        = $auction_data['seller_id'];
-  $seller_email     = $auction_data['seller_email'];
-  $auction_is_anon  = !empty($auction_data['is_anonymous']);
-  $hide_bidders     = !empty($auction_data['hide_bidders']);
+$conn = get_database_connection();
 
-  $end_time = new DateTime($auction_data['end_date']);
-  $now      = new DateTime();
+$sql = "
+  SELECT 
+    i.title,
+    i.description,
+    i.seller_id,
+    u.email AS seller_email,
+    a.start_price,
+    a.end_date,
+    a.status,
+    a.is_anonymous,
+    a.hide_bidders,
+    COALESCE(MAX(b.amount), a.start_price) AS current_price,
+    COUNT(b.id) AS num_bids
+  FROM auction a
+  JOIN item i ON a.item_id = i.id
+  JOIN users u ON i.seller_id = u.user_id
+  LEFT JOIN bid b ON a.id = b.auction_id
+  WHERE a.id = ?
+  GROUP BY a.id
+";
 
-  $is_ended = ($now >= $end_time);
-  $time_remaining = $is_ended ? 'Lot Closed' : display_time_remaining(date_diff($now, $end_time));
-  $deadline_str = $end_time->format('F j, Y • g:i A');
+$stmt = $conn->prepare($sql);
+if (!$stmt) { die('Prepare failed: ' . $conn->error); }
+$stmt->bind_param("i", $auction_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$auction_data = $result->fetch_assoc();
+$stmt->close();
 
-  $has_session = isset($_SESSION['logged_in']) && $_SESSION['logged_in'] == true;
-  $watching = false; 
-  if ($has_session) {
-      $watch_sql = "SELECT COUNT(*) FROM watchlist WHERE user_id = ? AND auction_id = ?";
-      $stmt_watch = $conn->prepare($watch_sql);
-      $stmt_watch->bind_param("ii", $_SESSION['user_id'], $auction_id);
-      $stmt_watch->execute();
-      $stmt_watch->bind_result($watch_count);
-      $stmt_watch->fetch();
-      $stmt_watch->close();
+if (!$auction_data) {
+  echo "<div class='container my-5 text-center'><h3>Lot not found.</h3></div>";
+  include_once("footer.php");
+  exit();
+}
 
-      if ($watch_count > 0) {
-          $watching = true;
-      }
-  }
+$title            = $auction_data['title'];
+$description      = $auction_data['description'];
+$current_price    = $auction_data['current_price'];
+$num_bids         = $auction_data['num_bids'];
+$seller_id        = $auction_data['seller_id'];
+$seller_email     = $auction_data['seller_email'];
+$auction_is_anon  = !empty($auction_data['is_anonymous']);
+$hide_bidders     = !empty($auction_data['hide_bidders']);
 
-  $display_title = $auction_is_anon ? '[Anonymous] ' . $title : $title;
-  $display_seller_email = $auction_is_anon ? 'Hidden for anonymous auction' : $seller_email;
+$end_time = new DateTime($auction_data['end_date']);
+$now      = new DateTime();
+
+$is_ended = ($now >= $end_time);
+$time_remaining = $is_ended ? 'Lot Closed' : display_time_remaining(date_diff($now, $end_time));
+$deadline_str = $end_time->format('F j, Y • g:i A');
+
+$has_session = isset($_SESSION['logged_in']) && $_SESSION['logged_in'] == true;
+$watching = false; 
+if ($has_session) {
+    $watch_sql = "SELECT COUNT(*) FROM watchlist WHERE user_id = ? AND auction_id = ?";
+    $stmt_watch = $conn->prepare($watch_sql);
+    $stmt_watch->bind_param("ii", $_SESSION['user_id'], $auction_id);
+    $stmt_watch->execute();
+    $stmt_watch->bind_result($watch_count);
+    $stmt_watch->fetch();
+    $stmt_watch->close();
+
+    if ($watch_count > 0) {
+        $watching = true;
+    }
+}
+
+$display_title = $auction_is_anon ? '[Anonymous] ' . $title : $title;
+$display_seller_email = $auction_is_anon ? 'Hidden for anonymous auction' : $seller_email;
 ?>
 
 <div class="container mt-5 mb-5">
@@ -258,46 +262,51 @@
                               WHERE b.auction_id = ? 
                               ORDER BY b.amount DESC 
                               LIMIT 5
-                            ";                            
+                            ";
                             $stmt_hist = $conn->prepare($history_sql);
                             $stmt_hist->bind_param("i", $auction_id);
                             $stmt_hist->execute();
                             $res_hist = $stmt_hist->get_result();
                             
                             $rank = 1;
-                            while ($bid_row = $res_hist->fetch_assoc()) {
+                            if ($res_hist->num_rows > 0) {
+                                while ($bid_row = $res_hist->fetch_assoc()) {
 
-                                if ($rank == 1) $badge = "<span class='rank-badge rank-gold'>1</span>";
-                                elseif ($rank == 2) $badge = "<span class='rank-badge rank-silver'>2</span>";
-                                elseif ($rank == 3) $badge = "<span class='rank-badge rank-bronze'>3</span>";
-                                else $badge = $rank;
-
-                                $bid_time = new DateTime($bid_row['bid_time']);
-
-                                if ($hide_bidders == 1 || $bid_row['is_anonymous'] == 1) {
-                                    $bidder_display = "Anonymous Bidder #{$rank}";
-                                } else {
-                                    $email = $bid_row['email'];
-                                    $parts = explode("@", $email);
-                                    if (count($parts) == 2) {
-                                        $bidder_display = substr($parts[0], 0, 2) . "***@" . $parts[1];
+                                    if ($rank == 1) {
+                                        $badge = "<span class='rank-badge rank-gold'>1</span>";
+                                    } elseif ($rank == 2) {
+                                        $badge = "<span class='rank-badge rank-silver'>2</span>";
+                                    } elseif ($rank == 3) {
+                                        $badge = "<span class='rank-badge rank-bronze'>3</span>";
                                     } else {
-                                        $bidder_display = "Unknown";
+                                        $badge = $rank;
                                     }
+
+                                    $bid_time = new DateTime($bid_row['bid_time']);
+
+                                    if ($hide_bidders == 1 || $bid_row['is_anonymous'] == 1) {
+                                        $bidder_display = "Anonymous Bidder #{$rank}";
+                                    } else {
+                                        $email = $bid_row['email'];
+                                        $parts = explode("@", $email);
+                                        if (count($parts) == 2) {
+                                            $bidder_display = substr($parts[0], 0, 2) . "***@" . $parts[1];
+                                        } else {
+                                            $bidder_display = "Unknown";
+                                        }
+                                    }
+
+                                    echo "
+                                        <tr>
+                                            <td>$badge</td>
+                                            <td>".htmlspecialchars($bidder_display)."</td>
+                                            <td class='text-right font-weight-bold'>£".number_format($bid_row['amount'], 2)."</td>
+                                            <td class='text-right text-muted'>".$bid_time->format('H:i')."</td>
+                                        </tr>
+                                    ";
+
+                                    $rank++;
                                 }
-
-                                echo "
-                                    <tr>
-                                        <td>$badge</td>
-                                        <td>".htmlspecialchars($bidder_display)."</td>
-                                        <td class='text-right font-weight-bold'>£".number_format($bid_row['amount'], 2)."</td>
-                                        <td class='text-right text-muted'>".$bid_time->format('H:i')."</td>
-                                    </tr>
-                                ";
-
-                                $rank++;
-                            }
-
                             } else {
                                 echo "<tr><td colspan='4' class='text-center text-muted'>No bids yet. Start the bidding!</td></tr>";
                             }
