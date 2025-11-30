@@ -22,6 +22,7 @@
       a.end_date,
       a.status,
       a.is_anonymous,
+      a.hide_bidders,
       COALESCE(MAX(b.amount), a.start_price) AS current_price,
       COUNT(b.id) AS num_bids
     FROM auction a
@@ -53,6 +54,7 @@
   $seller_id        = $auction_data['seller_id'];
   $seller_email     = $auction_data['seller_email'];
   $auction_is_anon  = !empty($auction_data['is_anonymous']);
+  $hide_bidders     = !empty($auction_data['hide_bidders']);
 
   $end_time = new DateTime($auction_data['end_date']);
   $now      = new DateTime();
@@ -123,9 +125,13 @@
                 
                 <h1 class="noble-serif mb-3" style="line-height: 1.2;"><?php echo htmlspecialchars($display_title); ?></h1>
 
-                <?php if ($auction_is_anon): ?>
+                <?php if ($auction_is_anon && $hide_bidders): ?>
                   <div class="alert alert-info py-2 mb-4">
-                    This is an anonymous auction. Seller and bidders may be hidden in public views.
+                    This is a fully anonymous auction. Seller and all bidders are hidden in public views.
+                  </div>
+                <?php elseif ($auction_is_anon): ?>
+                  <div class="alert alert-info py-2 mb-4">
+                    Seller is anonymous in this auction. Bidders may still choose to hide themselves.
                   </div>
                 <?php endif; ?>
 
@@ -259,37 +265,39 @@
                             $res_hist = $stmt_hist->get_result();
                             
                             $rank = 1;
-                            if ($res_hist->num_rows > 0) {
-                                while ($bid_row = $res_hist->fetch_assoc()) {
-                                    $badge_class = 'rank-badge';
-                                    if ($rank == 1) $badge_class .= ' rank-gold';
-                                    elseif ($rank == 2) $badge_class .= ' rank-silver';
-                                    elseif ($rank == 3) $badge_class .= ' rank-bronze';
-                                    else $badge_class = 'text-muted small pl-2';
-                                    
-                                    $rank_display = ($rank <= 3) ? "<span class='$badge_class'>$rank</span>" : $rank;
-                                    $bid_time = new DateTime($bid_row['bid_time']);
+                            while ($bid_row = $res_hist->fetch_assoc()) {
 
-                                    if ($auction_is_anon || !empty($bid_row['is_anonymous'])) {
-                                        $bidder_display = "Bidder #{$rank}";
+                                if ($rank == 1) $badge = "<span class='rank-badge rank-gold'>1</span>";
+                                elseif ($rank == 2) $badge = "<span class='rank-badge rank-silver'>2</span>";
+                                elseif ($rank == 3) $badge = "<span class='rank-badge rank-bronze'>3</span>";
+                                else $badge = $rank;
+
+                                $bid_time = new DateTime($bid_row['bid_time']);
+
+                                if ($hide_bidders == 1 || $bid_row['is_anonymous'] == 1) {
+                                    $bidder_display = "Anonymous Bidder #{$rank}";
+                                } else {
+                                    $email = $bid_row['email'];
+                                    $parts = explode("@", $email);
+                                    if (count($parts) == 2) {
+                                        $bidder_display = substr($parts[0], 0, 2) . "***@" . $parts[1];
                                     } else {
-                                        $email = $bid_row['email'];
-                                        $parts = explode("@", $email);
-                                        if (count($parts) == 2) {
-                                            $bidder_display = substr($parts[0], 0, 2) . "***@" . $parts[1];
-                                        } else {
-                                            $bidder_display = "Unknown";
-                                        }
+                                        $bidder_display = "Unknown";
                                     }
-                                    
-                                    echo "<tr>";
-                                    echo "<td>$rank_display</td>";
-                                    echo "<td style='font-family: sans-serif; color: #555;'>" . htmlspecialchars($bidder_display) . "</td>";                                    
-                                    echo "<td class='text-right font-weight-bold'>£" . number_format($bid_row['amount'], 2) . "</td>";
-                                    echo "<td class='text-right text-muted'>" . $bid_time->format('H:i') . "</td>";
-                                    echo "</tr>";
-                                    $rank++;
                                 }
+
+                                echo "
+                                    <tr>
+                                        <td>$badge</td>
+                                        <td>".htmlspecialchars($bidder_display)."</td>
+                                        <td class='text-right font-weight-bold'>£".number_format($bid_row['amount'], 2)."</td>
+                                        <td class='text-right text-muted'>".$bid_time->format('H:i')."</td>
+                                    </tr>
+                                ";
+
+                                $rank++;
+                            }
+
                             } else {
                                 echo "<tr><td colspan='4' class='text-center text-muted'>No bids yet. Start the bidding!</td></tr>";
                             }
