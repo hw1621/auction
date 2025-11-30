@@ -130,3 +130,103 @@ body {
     background: transparent;
     outline: none;
 }
+
+/* =========================================
+   Browse Page Specific Styles
+   ========================================= */
+
+.browse-serif-title {
+    font-family: 'Times New Roman', Times, serif; 
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    color: #111;
+}
+
+.browse-search-container {
+    background: #fff;
+    padding: 30px;
+    border: 1px solid #eee;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.02);
+    margin-bottom: 40px;
+}
+
+.browse-input, 
+.browse-select {
+    border: none;
+    border-bottom: 1px solid #ccc;
+    border-radius: 0;
+    background: transparent;
+    height: 50px;
+    padding: 10px 5px;
+    line-height: 1.5;
+    font-size: 1.1rem;
+    
+    box-shadow: none !important;
+    width: 100%;
+    color: #333;         
+}
+
+.browse-input:focus, 
+.browse-select:focus {
+    border-bottom-color: #111;
+    background: transparent;
+    outline: none;
+}
+
+/* Customised arrow */
+.browse-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    cursor: pointer;
+}
+
+/* Search Button */
+.browse-btn-search {
+    background-color: #111;
+    color: #fff;
+    border: none;
+    border-radius: 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 10px 30px;
+    font-size: 0.9rem;
+    height: 50px;
+    width: 100%;
+    transition: all 0.3s;
+}
+
+.browse-btn-search:hover {
+    background-color: #444;
+    color: #fff;
+}
+
+.browse-pagination .page-link {
+    color: #333;
+    border: none;
+    background: transparent;
+    font-family: 'Times New Roman', serif;
+    font-size: 1.1rem;
+    margin: 0 5px;
+}
+
+.browse-pagination .page-item.active .page-link {
+    background-color: transparent;
+    color: #111;
+    font-weight: bold;
+    border-bottom: 2px solid #111;
+    border-radius: 0;
+}
+
+.browse-pagination .page-link:hover {
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    color: #000;
+}
+
+.browse-pagination .page-item.disabled .page-link {
+    color: #ccc;
+}
