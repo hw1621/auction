@@ -19,7 +19,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $startPrice  = trim($_POST['start_price'] ?? '');
     $reserve     = trim($_POST['reserve_price'] ?? '');
     $endDateRaw  = trim($_POST['end_date'] ?? '');
-    $isAnonymous = isset($_POST['is_anonymous']) ? 1 : 0;
+    $anonymityMode = $_POST['anonymity_mode'] ?? 'normal';
+
+    $isAnonymous  = 0;
+    $hideBidders  = 0;
+
+    if ($anonymityMode === 'seller_only') {
+        $isAnonymous = 1;
+        $hideBidders = 0;
+    } elseif ($anonymityMode === 'full') {
+        $isAnonymous = 1;
+        $hideBidders = 1;
+    } else {
+        $isAnonymous = 0;
+        $hideBidders = 0;
+    }
 
     if ($title === '') {
         $errors[] = 'Title is required.';
