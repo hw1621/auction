@@ -24,9 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($title === '') {
         $errors[] = 'Title is required.';
     }
-    if ($details === '') {
-        $errors[] = 'Details are required.';
-    }
+    
     if ($categoryId <= 0) {
         $errors[] = 'Category is required.';
     }
