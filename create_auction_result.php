@@ -10,6 +10,7 @@ $errors = [];
 $success = false;
 $newAuctionId = null;
 $title = '';
+$imageFilename = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -69,21 +70,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
+        if (isset($_FILES['auctionImage']) && $_FILES['auctionImage']['error'] === UPLOAD_ERR_OK) {
+            $fileTmpPath = $_FILES['auctionImage']['tmp_name'];
+            $fileName = $_FILES['auctionImage']['name'];
+            $fileSize = $_FILES['auctionImage']['size'];
+            $fileType = $_FILES['auctionImage']['type'];
+            $fileNameCmps = explode(".", $fileName);
+            $fileExtension = strtolower(end($fileNameCmps));
+
+            $allowedfileExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+            if (in_array($fileExtension, $allowedfileExtensions)) {
+                $newFileName = md5(time() . $fileName) . '.' . $fileExtension;
+                $uploadFileDir = __DIR__ . '/uploads/';
+                $dest_path = $uploadFileDir . $newFileName;
+                if (!is_dir($uploadFileDir)) {
+                    mkdir($uploadFileDir, 0755, true);
+                }
+                if (move_uploaded_file($fileTmpPath, $dest_path)) {
+                    $imageFilename = $newFileName;
+                } else {
+                    $errors[] = 'Failed to save image. Please check server permissions for /uploads/ folder.';               
+                }
+            } else {
+                $errors[] = 'Upload failed. Allowed file types: ' . implode(',', $allowedfileExtensions);
+            }
+        }
+    }
+
+    if (empty($errors)) {
         try {
             $conn->begin_transaction();
 
             $sellerId = $sellerId = (int)$_SESSION['user_id'];
 
             $itemSql = "
-                INSERT INTO item (title, description, category_id, seller_id)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO item (title, description, category_id, seller_id, image_path)
+                VALUES (?, ?, ?, ?, ?)
             ";
             $itemStmt = $conn->prepare($itemSql);
             if (!$itemStmt) {
                 throw new Exception('Failed to prepare item insert: ' . $conn->error);
             }
 
-            $itemStmt->bind_param('ssii', $title, $details, $categoryId, $sellerId);
+            $itemStmt->bind_param('ssiis', $title, $details, $categoryId, $sellerId, $imageFilename);
 
             if (!$itemStmt->execute()) {
                 throw new Exception('Failed to insert item: ' . $itemStmt->error);

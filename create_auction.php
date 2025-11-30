@@ -54,7 +54,7 @@ if ($mysqli->connect_errno) {
       before they try to send it, but that kind of functionality should be
       extremely low-priority / only done after all database functions are
       complete. -->
-      <form method="post" action="create_auction_result.php">
+      <form method="post" action="create_auction_result.php" encrypttype="multipart/form-data">
         <div class="form-group row">
           <label for="auctionTitle" class="col-sm-2 col-form-label text-right">Title of auction</label>
           <div class="col-sm-10">
@@ -67,6 +67,27 @@ if ($mysqli->connect_errno) {
           <div class="col-sm-10">
             <textarea class="form-control" id="auctionDetails" name="details" rows="4"></textarea>
             <small id="detailsHelp" class="form-text text-muted">Full details of the listing to help bidders decide if it's what they're looking for.</small>
+          </div>
+        </div>
+        <div class="form-group row">
+          <label for="auctionImage" class="col-sm-2 col-form-label text-right">Item Image</label>
+          <div class="col-sm-10">
+            <div class="custom-file">
+              <input type="file" class="custom-file-input" id="auctionImage" name="auctionImage" accept="image/*">
+              <label class="custom-file-label" for="auctionImage">Choose file...</label>
+            </div>
+            <small class="form-text text-muted">Optional. Upload a clear photo (JPG, PNG).</small>
+
+            <div id="previewContainer" style="display: none; margin-top: 15px;">
+                <div class="card" style="width: 12rem;">
+                    <img id="imagePreview" src="#" class="card-img-top" alt="Image Preview" style="height: 150px; object-fit: cover;">
+                    <div class="card-body p-2">
+                        <button type="button" class="btn btn-danger btn-sm btn-block" id="removeImageBtn">
+                            <i class="fa fa-trash"></i> Remove
+                        </button>
+                    </div>
+                </div>
+            </div>
           </div>
         </div>
         <div class="form-group row">
@@ -186,4 +207,31 @@ if (isset($mysqli) && $mysqli instanceof mysqli) {
 ?>
 
 <?php include_once("footer.php")?>
+
+<script>
+$(document).ready(function() {
+    $('#auctionImage').on('change', function(e) {
+        var file = e.target.files[0];
+        var fileName = $(this).val().split('\\').pop();
+
+        $(this).next('.custom-file-label').addClass("selected").html(fileName);
+
+        if (file) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                $('#imagePreview').attr('src', e.target.result);
+                $('#previewContainer').fadeIn();
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    $('#removeImageBtn').on('click', function() {
+        $('#auctionImage').val(''); 
+        $('.custom-file-label').removeClass("selected").html('Choose file...');
+        $('#previewContainer').fadeOut();
+    });
+
+});
+</script>
 
