@@ -20,6 +20,7 @@ $sql = "
         a.status,
         a.winner_id,
         a.is_anonymous,
+        a.hide_bidders,
         seller.username   AS seller_name,
         seller.email      AS seller_email,
         i.title           AS item_title
@@ -85,11 +86,14 @@ include_once 'header.php';
             <tbody>
             <?php foreach ($auctions as $a): ?>
               <?php
-              $isSold     = ($a['status'] === AuctionStatus::SOLD);
-              $badgeClass = $isSold ? 'badge-success' : 'badge-secondary';
-              $resultText = $isSold ? 'Sold' : 'Unsold';
+              $isSold        = ($a['status'] === AuctionStatus::SOLD);
+              $badgeClass    = $isSold ? 'badge-success' : 'badge-secondary';
+              $resultText    = $isSold ? 'Sold' : 'Unsold';
 
-              if (!empty($a['is_anonymous'])) {
+              $auctionIsAnon = !empty($a['is_anonymous']);
+              $hideBidders   = !empty($a['hide_bidders']);
+
+              if ($auctionIsAnon) {
                   $displaySellerName  = 'Anonymous Seller #' . (int)$a['id'];
                   $displaySellerEmail = 'Hidden';
               } else {
@@ -97,15 +101,11 @@ include_once 'header.php';
                   $displaySellerEmail = $a['seller_email'];
               }
 
-              if (!empty($a['is_anonymous'])) {
-                  if ($a['winner_id'] === null) {
-                      $displayWinner = '—';
-                  } else {
-                      $displayWinner = 'Anonymous Winner';
-                  }
+              if ($a['winner_id'] === null) {
+                  $displayWinner = '—';
               } else {
-                  if ($a['winner_id'] === null) {
-                      $displayWinner = '—';
+                  if ($hideBidders) {
+                      $displayWinner = 'Anonymous Winner';
                   } else {
                       $displayWinner = 'ID: ' . (int)$a['winner_id'];
                   }
