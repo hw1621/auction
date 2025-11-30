@@ -17,6 +17,7 @@
       i.title,
       i.description,
       i.seller_id,
+      u.email AS seller_email,
       a.start_price,
       a.end_date,
       a.status,
@@ -24,6 +25,7 @@
       COUNT(b.id) AS num_bids
     FROM auction a
     JOIN item i ON a.item_id = i.id
+    JOIN users u ON i.seller_id = u.user_id
     LEFT JOIN bid b ON a.id = b.auction_id
     WHERE a.id = ?
     GROUP BY a.id
@@ -48,6 +50,7 @@
   $current_price = $auction_data['current_price'];
   $num_bids = $auction_data['num_bids'];
   $seller_id = $auction_data['seller_id'];
+  $seller_email = $auction_data['seller_email'];
   $end_time = new DateTime($auction_data['end_date']);
   $now = new DateTime();
 
@@ -55,11 +58,22 @@
   $time_remaining = $is_ended ? 'Lot Closed' : display_time_remaining(date_diff($now, $end_time));
   $deadline_str = $end_time->format('F j, Y • g:i A');
 
-  // 用户状态
+  // Check if user has added this auction to watch-list
   $has_session = isset($_SESSION['logged_in']) && $_SESSION['logged_in'] == true;
-
-  //TODO: !!!!!!!!!!!!!!!
   $watching = false; 
+  if ($has_session) {
+      $watch_sql = "SELECT COUNT(*) FROM watchlist WHERE user_id = ? AND auction_id = ?";
+      $stmt_watch = $conn->prepare($watch_sql);
+      $stmt_watch->bind_param("ii", $_SESSION['user_id'], $auction_id);
+      $stmt_watch->execute();
+      $stmt_watch->bind_result($watch_count);
+      $stmt_watch->fetch();
+      $stmt_watch->close();
+
+      if ($watch_count > 0) {
+          $watching = true;
+      }
+  }
 ?>
 
 <div class="container mt-5 mb-5">
@@ -88,7 +102,7 @@
                 
                 <h5 class="noble-serif mb-3">Seller Information</h5>
                 <p class="text-muted">
-                    Seller ID: <strong>#<?php echo $seller_id; ?></strong><br>
+                    Seller Email: <strong><?php echo $seller_email; ?></strong><br>
                     <small>Verified Seller</small>
                 </p>
             </div>
@@ -179,7 +193,7 @@
                         </div>
                         <div id="watch_watching" <?php if (!$watching) echo('style="display: none"');?> >
                             <button class="btn btn-outline-noble btn-block active" onclick="removeFromWatchlist()">
-                                <i class="fa fa-star"></i> &nbsp; Watching
+                                <i class="fa fa-star" style="color: #ffc107;"></i> &nbsp; Watching
                             </button>
                         </div>
                     <?php endif; ?>
@@ -198,7 +212,12 @@
                         </thead>
                         <tbody>
                             <?php
-                            $history_sql = "SELECT b.amount, b.bid_time, b.bidder_id FROM bid b WHERE b.auction_id = ? ORDER BY b.amount DESC LIMIT 5";
+                            $history_sql = "SELECT b.amount, b.bid_time, u.username, u.email 
+                                            FROM bid b 
+                                            JOIN users u ON b.bidder_id = u.user_id 
+                                            WHERE b.auction_id = ? 
+                                            ORDER BY b.amount DESC 
+                                            LIMIT 5";                            
                             $stmt_hist = $conn->prepare($history_sql);
                             $stmt_hist->bind_param("i", $auction_id);
                             $stmt_hist->execute();
@@ -215,10 +234,17 @@
                                     
                                     $rank_display = ($rank <= 3) ? "<span class='$badge_class'>$rank</span>" : $rank;
                                     $bid_time = new DateTime($bid_row['bid_time']);
+                                    $email = $bid_row['email'];
+                                    $parts = explode("@", $email);
+                                    if (count($parts) == 2) {
+                                        $display_email = substr($parts[0], 0, 2) . "***@" . $parts[1];
+                                    } else {
+                                        $display_email = "Unknown";
+                                    }
                                     
                                     echo "<tr>";
                                     echo "<td>$rank_display</td>";
-                                    echo "<td>User #{$bid_row['bidder_id']}</td>";
+                                    echo "<td style='font-family: sans-serif; color: #555;'>$display_email</td>";                                    
                                     echo "<td class='text-right font-weight-bold'>£" . number_format($bid_row['amount'], 2) . "</td>";
                                     echo "<td class='text-right text-muted'>" . $bid_time->format('H:i') . "</td>";
                                     echo "</tr>";
@@ -247,7 +273,10 @@
 function addToWatchlist() {
   $.ajax('watchlist_funcs.php', {
     type: "POST",
-    data: {functionname: 'add_to_watchlist', arguments: [<?php echo($auction_id);?>]},
+    data: {
+        functionname: 'add_to_watchlist', 
+        auction_id: <?php echo($auction_id);?>
+    },
     success: function(obj, textstatus) {
         if (obj.trim() == "success") {
           $("#watch_nowatch").hide();
@@ -256,10 +285,14 @@ function addToWatchlist() {
     }
   });
 }
+
 function removeFromWatchlist() {
   $.ajax('watchlist_funcs.php', {
     type: "POST",
-    data: {functionname: 'remove_from_watchlist', arguments: [<?php echo($auction_id);?>]},
+    data: {
+        functionname: 'remove_from_watchlist', 
+        auction_id: <?php echo($auction_id);?>
+    },
     success: function(obj, textstatus) {
         if (obj.trim() == "success") {
           $("#watch_watching").hide();

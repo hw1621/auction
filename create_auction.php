@@ -125,6 +125,28 @@ if ($mysqli->connect_errno) {
             <small id="endDateHelp" class="form-text text-muted"><span class="text-danger">* Required.</span> Day for the auction to end.</small>
           </div>
         </div>
+		  
+        <div class="form-group row">
+          <label class="col-sm-2 col-form-label text-right">Anonymity</label>
+          <div class="col-sm-10">
+            <div class="form-check">
+              <input
+                type="checkbox"
+                class="form-check-input"
+                id="auctionIsAnonymous"
+                name="is_anonymous"
+                value="1"
+              >
+              <label class="form-check-label" for="auctionIsAnonymous">
+                Make this auction anonymous
+              </label>
+            </div>
+            <small class="form-text text-muted">
+              If checked, your seller identity will be hidden on public listings for this auction.
+            </small>
+          </div>
+        </div>
+		  
         <button type="submit" class="btn btn-primary form-control">Create Auction</button>
       </form>
     </div>
