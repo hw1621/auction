@@ -129,23 +129,53 @@ if ($mysqli->connect_errno) {
         <div class="form-group row">
           <label class="col-sm-2 col-form-label text-right">Anonymity</label>
           <div class="col-sm-10">
+
             <div class="form-check">
               <input
-                type="checkbox"
                 class="form-check-input"
-                id="auctionIsAnonymous"
-                name="is_anonymous"
-                value="1"
+                type="radio"
+                name="anonymity_mode"
+                id="anonNormal"
+                value="normal"
+                checked
               >
-              <label class="form-check-label" for="auctionIsAnonymous">
-                Make this auction anonymous
+              <label class="form-check-label" for="anonNormal">
+                Normal auction (seller and bidders visible)
               </label>
             </div>
-            <small class="form-text text-muted">
-              If checked, your seller identity will be hidden on public listings for this auction.
+
+            <div class="form-check mt-1">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="anonymity_mode"
+                id="anonSellerOnly"
+                value="seller_only"
+              >
+              <label class="form-check-label" for="anonSellerOnly">
+                Hide seller only (bidders visible unless they choose anonymous)
+              </label>
+            </div>
+
+            <div class="form-check mt-1">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="anonymity_mode"
+                id="anonFull"
+                value="full"
+              >
+              <label class="form-check-label" for="anonFull">
+                Fully anonymous (hide seller and all bidders)
+              </label>
+            </div>
+
+            <small class="form-text text-muted mt-2">
+              You can choose whether only the seller is hidden, or the entire auction runs anonymously.
             </small>
           </div>
         </div>
+
 		  
         <button type="submit" class="btn btn-primary form-control">Create Auction</button>
       </form>
