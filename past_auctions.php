@@ -2,15 +2,12 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
-// Past Auctions 页面不需要管理员权限，所有人都可以看
 require_once 'config.php';
 $conn = get_database_connection();
 
 $errors   = [];
 $auctions = [];
 
-// 查询已结束的拍卖（根据 end_date）
 $sql = "
     SELECT
         a.id,
@@ -21,6 +18,7 @@ $sql = "
         a.end_date,
         a.status,
         a.winner_id,
+        a.is_anonymous
         seller.username   AS seller_name,
         seller.email      AS seller_email,
         i.title           AS item_title
@@ -88,6 +86,13 @@ include_once 'header.php';
               $isSold     = ($a['status'] === AuctionStatus::SOLD);
               $badgeClass = $isSold ? 'badge-success' : 'badge-secondary';
               $resultText = $isSold ? 'Sold' : 'Unsold';
+              if (!empty($a['is_anonymous'])) {
+                  $displaySellerName  = 'Anonymous Seller #' . (int)$a['id'];
+                  $displaySellerEmail = 'Hidden';
+              } else {
+                  $displaySellerName  = $a['seller_name'];
+                  $displaySellerEmail = $a['seller_email'];
+              }
               ?>
               <tr>
                 <td><?= (int)$a['id'] ?></td>
