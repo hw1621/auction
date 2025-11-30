@@ -21,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $auctionId = $_POST['auction_id'] ?? '';
     $amount    = $_POST['amount'] ?? '';
+    $bidIsAnonymous = isset($_POST['bid_is_anonymous']) ? 1 : 0;
 
     if ($auctionId === '' || !ctype_digit($auctionId)) {
         $errors[] = 'Invalid auction id.';
@@ -56,9 +57,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($auctionRow['end_date'] <= $now) {
                     $errors[] = 'This auction has already ended.';
                 }
-                if (!empty($auctionRow['status']) && $auctionRow['status'] !== 'active') {
+                if (!empty($auctionRow['status']) && $auctionRow['status'] !== AuctionStatus::ACTIVE) {
                     $errors[] = 'This auction is not active.';
-                } 
+                }
             }
             $stmtA->close();
         }
@@ -123,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $sqlU = "
                     UPDATE bid
-                    SET amount = ?, bid_time = ?
+                    SET amount = ?, bid_time = ?, is_anonymous = ?
                     WHERE id = ?
                 ";
                 $stmtU = $conn->prepare($sqlU);
@@ -131,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $errors[] = 'Database error (prepare update bid): ' . $conn->error;
                 } else {
                     $bidId = (int)$existingBid['id'];
-                    $stmtU->bind_param("dsi", $amountFloat, $now, $bidId);
+                    $stmtU->bind_param("dsii", $amountFloat, $now, $bidIsAnonymous, $bidId);
                     if ($stmtU->execute()) {
                         $success = true;
                     } else {
@@ -142,14 +143,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } else {
             $sqlI = "
-                INSERT INTO bid (amount, bidder_id, auction_id, bid_time)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO bid (amount, bidder_id, auction_id, bid_time, is_anonymous)
+                VALUES (?, ?, ?, ?, ?)
             ";
             $stmtI = $conn->prepare($sqlI);
             if ($stmtI === false) {
                 $errors[] = 'Database error (prepare insert bid): ' . $conn->error;
             } else {
-                $stmtI->bind_param("diis", $amountFloat, $userId, $auctionIdInt, $now);
+                $stmtI->bind_param("diisi", $amountFloat, $userId, $auctionIdInt, $now, $bidIsAnonymous);
                 if ($stmtI->execute()) {
                     $success = true;
                 } else {
