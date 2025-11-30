@@ -8,7 +8,6 @@ require_once 'utilities.php';
 
 $conn = get_database_connection();
 
-
 if (empty($_SESSION['user_id'])) {
     $_SESSION['login_error'] = 'Please log in to view your listings.';
     header('Location: browse.php');
@@ -33,7 +32,8 @@ $sql = "
         a.start_price,
         a.reserve_price,
         a.end_date,
-        a.status
+        a.status,
+        a.is_anonymous
     FROM item i
     JOIN auction a ON a.item_id = i.id
     LEFT JOIN categories c ON c.id = i.category_id
@@ -73,8 +73,14 @@ include_once("header.php");
       </thead>
       <tbody>
         <?php while ($row = $result->fetch_assoc()): ?>
+          <?php
+          $title = $row['item_title'];
+          if (!empty($row['is_anonymous'])) {
+              $title = '[Anonymous] ' . $title;
+          }
+          ?>
           <tr>
-            <td><?= htmlspecialchars($row['item_title']) ?></td>
+            <td><?= htmlspecialchars($title) ?></td>
             <td><?= htmlspecialchars($row['category_name'] ?? 'Uncategorised') ?></td>
             <td>£<?= htmlspecialchars($row['start_price']) ?></td>
             <td><?= htmlspecialchars($row['end_date']) ?></td>
