@@ -69,7 +69,6 @@
 </div>
 
 <?php
-  // 1. Get search parameters
   $keyword = $_GET['keyword'] ?? '';
   $category = $_GET['cat'] ?? 'all';
   $ordering = $_GET['order_by'] ?? 'date';
@@ -79,11 +78,9 @@
   $common_from = " FROM auction a JOIN item i ON a.item_id = i.id ";
   $common_where = " WHERE a.status = 'ACTIVE' ";
 
-  // Search parameters
   $params = [];
   $types = "";
 
-  // Keyword
   if (!empty($keyword)) {
       $common_where .= " AND (a.title LIKE ?) ";
       $search_term = "%" . $keyword . "%";
@@ -91,7 +88,6 @@
       $types .= "s";
   }
 
-  // Category filter
   if ($category != 'all') {
       $common_where .= " AND i.category_id = ? ";
       $params[] = $category;
@@ -109,16 +105,13 @@
   $stmt->fetch();
   $stmt->close();
 
-  // Page calculation
   $max_page = ceil($num_results / $results_per_page);
   if ($max_page == 0) $max_page = 1;
   if ($curr_page > $max_page) $curr_page = $max_page;
   if ($curr_page < 1) $curr_page = 1;
   
-  // 1. Left Join bids table to get bid counts and current price
   $data_from = $common_from . " LEFT JOIN bid b ON a.id = b.auction_id ";
   
-  // 2. Ordering and Grouping
   $group_by_sql = " GROUP BY a.id ";
   switch ($ordering) {
       case 'pricelow':
@@ -133,7 +126,6 @@
           break;
   }
 
-  // 3. Final SQL
   $data_sql = "SELECT 
                 a.id, 
                 a.title, 
@@ -141,11 +133,11 @@
                 i.description, 
                 a.end_date, 
                 i.category_id,
+                a.is_anonymous,
                 COUNT(b.id) as num_bids, 
                 COALESCE(MAX(b.amount), a.start_price) as current_price
                " . $data_from . $common_where . $group_by_sql . $order_sql . " LIMIT ? OFFSET ?";
 
-  // 4. Pageination params
   $offset = ($curr_page - 1) * $results_per_page;
   $params[] = $results_per_page;
   $params[] = $offset;
@@ -174,6 +166,11 @@
       while ($row = $result->fetch_assoc()) {
           $auction_id = $row['id'];
           $title = $row['title'];
+          if (!empty($row['is_anonymous'])) {
+              $title_to_show = '[Anonymous] ' . $title;
+          } else {
+              $title_to_show = $title;
+          }
           $description = mb_strimwidth($row['description'], 0, 100, "...");
           $display_price = $row['current_price']; 
           $num_bids = $row['num_bids'];
@@ -182,7 +179,7 @@
           $cat_id = $row['category_id'];
           $category_name = $category_names[$cat_id];
 
-          print_listing_li($auction_id, $title, $description, $display_price, $num_bids, $end_date, $category_name);
+          print_listing_li($auction_id, $title_to_show, $description, $display_price, $num_bids, $end_date, $category_name);
       }
     ?>
     </ul>
