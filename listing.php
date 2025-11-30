@@ -1,5 +1,5 @@
 <?php include_once("header.php")?>
-<?php require("utilities.php")?>
+<?php require_once("utilities.php")?>
 
 <?php
 if (session_status() === PHP_SESSION_NONE) {

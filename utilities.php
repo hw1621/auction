@@ -97,8 +97,43 @@ function print_listing_li($auction_id, $title, $desc, $price, $num_bids, $end_ti
         $time_class = 'text-muted';
     }
   }
+  $price_formatted = number_format($price, 2);
+  echo '
+  <li class="list-group-item d-flex justify-content-between align-items-center p-3 hover-effect">
+    <div class="d-flex flex-row align-items-center w-100">
+        
+        <div class="bg-light d-flex align-items-center justify-content-center rounded mr-4" style="width: 100px; height: 100px; flex-shrink: 0;">
+            <i class="fa fa-image fa-2x text-black-50"></i>
+        </div>
 
-  /**
+        <div style="flex-grow: 1; min-width: 0;"> <h5 class="mb-1 text-truncate">
+                <a href="listing.php?auction_id=' . $auction_id . '" class="text-dark text-decoration-none">' . htmlspecialchars($title) . '</a>
+            </h5>
+            
+            <div class="mb-2">
+                <span class="badge badge-pill badge-info"><i class="fa fa-tag"></i> ' . htmlspecialchars($category) . '</span>
+            </div>
+
+            <p class="mb-1 text-muted small" style="line-height: 1.4;">' . htmlspecialchars($desc_shortened) . '</p>
+        </div>
+    </div>
+
+    <div class="text-right ml-4" style="min-width: 140px;">
+        <div class="mb-2">
+            <h4 class="font-weight-bold mb-0 text-primary">£' . $price_formatted . '</h4>
+            <small class="text-muted">' . $bid_text . '</small>
+        </div>
+        
+        <div class="mb-2">
+            <small class="' . $time_class . '"><i class="fa fa-clock-o"></i> ' . $time_remaining . '</small>
+        </div>
+
+        <a href="listing.php?auction_id=' . $auction_id . '" class="btn btn-outline-primary btn-sm btn-block">View</a>
+    </div>
+  </li>';
+}
+
+/**
  * @param array $fileInput $_FILES['key']
  * @param string $uploadDir
  * @return array ['filename' => string|null, 'error' => string|null]
@@ -150,41 +185,4 @@ function uploadImage($fileInput, $uploadDir) {
   }
 
   return $result;
-}
-
-  $price_formatted = number_format($price, 2);
-
-  echo '
-  <li class="list-group-item d-flex justify-content-between align-items-center p-3 hover-effect">
-    <div class="d-flex flex-row align-items-center w-100">
-        
-        <div class="bg-light d-flex align-items-center justify-content-center rounded mr-4" style="width: 100px; height: 100px; flex-shrink: 0;">
-            <i class="fa fa-image fa-2x text-black-50"></i>
-        </div>
-
-        <div style="flex-grow: 1; min-width: 0;"> <h5 class="mb-1 text-truncate">
-                <a href="listing.php?auction_id=' . $auction_id . '" class="text-dark text-decoration-none">' . htmlspecialchars($title) . '</a>
-            </h5>
-            
-            <div class="mb-2">
-                <span class="badge badge-pill badge-info"><i class="fa fa-tag"></i> ' . htmlspecialchars($category) . '</span>
-            </div>
-
-            <p class="mb-1 text-muted small" style="line-height: 1.4;">' . htmlspecialchars($desc_shortened) . '</p>
-        </div>
-    </div>
-
-    <div class="text-right ml-4" style="min-width: 140px;">
-        <div class="mb-2">
-            <h4 class="font-weight-bold mb-0 text-primary">£' . $price_formatted . '</h4>
-            <small class="text-muted">' . $bid_text . '</small>
-        </div>
-        
-        <div class="mb-2">
-            <small class="' . $time_class . '"><i class="fa fa-clock-o"></i> ' . $time_remaining . '</small>
-        </div>
-
-        <a href="listing.php?auction_id=' . $auction_id . '" class="btn btn-outline-primary btn-sm btn-block">View</a>
-    </div>
-  </li>';
 }
