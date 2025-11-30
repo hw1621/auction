@@ -2,6 +2,7 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
 require_once 'config.php';
 $conn = get_database_connection();
 
@@ -18,7 +19,7 @@ $sql = "
         a.end_date,
         a.status,
         a.winner_id,
-        a.is_anonymous
+        a.is_anonymous,
         seller.username   AS seller_name,
         seller.email      AS seller_email,
         i.title           AS item_title
@@ -37,6 +38,7 @@ if ($result) {
 } else {
     $errors[] = "Database error loading past auctions: " . $conn->error;
 }
+
 include_once 'header.php';
 ?>
 
@@ -86,12 +88,27 @@ include_once 'header.php';
               $isSold     = ($a['status'] === AuctionStatus::SOLD);
               $badgeClass = $isSold ? 'badge-success' : 'badge-secondary';
               $resultText = $isSold ? 'Sold' : 'Unsold';
+
               if (!empty($a['is_anonymous'])) {
                   $displaySellerName  = 'Anonymous Seller #' . (int)$a['id'];
                   $displaySellerEmail = 'Hidden';
               } else {
                   $displaySellerName  = $a['seller_name'];
                   $displaySellerEmail = $a['seller_email'];
+              }
+
+              if (!empty($a['is_anonymous'])) {
+                  if ($a['winner_id'] === null) {
+                      $displayWinner = '—';
+                  } else {
+                      $displayWinner = 'Anonymous Winner';
+                  }
+              } else {
+                  if ($a['winner_id'] === null) {
+                      $displayWinner = '—';
+                  } else {
+                      $displayWinner = 'ID: ' . (int)$a['winner_id'];
+                  }
               }
               ?>
               <tr>
@@ -103,18 +120,12 @@ include_once 'header.php';
                 </td>
                 <td><?= htmlspecialchars($a['item_title']) ?></td>
                 <td>
-                  <?= htmlspecialchars($a['seller_name']) ?><br>
+                  <?= htmlspecialchars($displaySellerName) ?><br>
                   <small class="text-muted">
-                    <?= htmlspecialchars($a['seller_email']) ?>
+                    <?= htmlspecialchars($displaySellerEmail) ?>
                   </small>
                 </td>
-                <td>
-                  <?php if ($a['winner_id'] === null): ?>
-                    <span class="text-muted">—</span>
-                  <?php else: ?>
-                    ID: <?= (int)$a['winner_id'] ?>
-                  <?php endif; ?>
-                </td>
+                <td><?= htmlspecialchars($displayWinner) ?></td>
                 <td class="text-right">
                   <?php if ($a['final_price'] === null): ?>
                     <span class="text-muted">—</span>
