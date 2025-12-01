@@ -120,6 +120,7 @@
                 a.end_date, 
                 i.category_id,
                 a.is_anonymous,
+                i.image_path,
                 COUNT(b.id) as num_bids, 
                 COALESCE(MAX(b.amount), a.start_price) as current_price
                " . $data_from . $common_where . $group_by_sql . $order_sql . " LIMIT ? OFFSET ?";
@@ -162,7 +163,7 @@
               } else {
                 $title_to_show = $title;
               }
-              $description = mb_strimwidth($row['description'], 0, 100, "...");
+              $description = mb_strimwidth($row['description'], 0, 350, "...");
               $display_price = $row['current_price']; 
               $num_bids = $row['num_bids'];
               $end_date = new DateTime($row['end_date']);
@@ -170,7 +171,9 @@
               $cat_id = $row['category_id'];
               $category_name = $category_names[$cat_id] ?? 'General';
 
-              print_listing_li($auction_id, $title_to_show, $description, $display_price, $num_bids, $end_date, $category_name);
+              $image_path = $row['image_path'];
+
+              print_listing_li($auction_id, $title_to_show, $description, $display_price, $num_bids, $end_date, $category_name, $image_path);
           }
         ?>
       </ul>
