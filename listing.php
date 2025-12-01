@@ -21,6 +21,7 @@ $sql = "
     i.title,
     i.description,
     i.seller_id,
+    i.image_path,
     u.email AS seller_email,
     a.start_price,
     a.end_date,
@@ -57,6 +58,7 @@ $current_price    = $auction_data['current_price'];
 $num_bids         = $auction_data['num_bids'];
 $seller_id        = $auction_data['seller_id'];
 $seller_email     = $auction_data['seller_email'];
+$image_path       = $auction_data['image_path'];
 $auction_is_anon  = !empty($auction_data['is_anonymous']);
 $hide_bidders     = !empty($auction_data['hide_bidders']);
 
@@ -99,8 +101,12 @@ $display_seller_email = $auction_is_anon ? 'Hidden for anonymous auction' : $sel
     <div class="row">
         
         <div class="col-lg-7 mb-4">
-            <div class="lot-image-container">
-                <i class="fa fa-image fa-5x text-black-50" style="opacity: 0.2;"></i>
+            <div class="lot-image-container" style="background-color: #f8f9fa; border: 1px solid #dee2e6; min-height: 400px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                <?php if (!empty($image_path) && file_exists(__DIR__ . '/uploads/' . $image_path)): ?>
+                    <img src="uploads/<?php echo htmlspecialchars($image_path); ?>" alt="<?php echo htmlspecialchars($title); ?>" style="max-width: 100%; max-height: 500px; object-fit: contain;">
+                <?php else: ?>
+                    <i class="fa fa-image fa-5x text-black-50" style="opacity: 0.2;"></i>
+                <?php endif; ?>
             </div>
             
             <div class="mt-5">
