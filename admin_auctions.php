@@ -69,7 +69,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['force_finish'])) {
                             WHERE id = ?
                         ");
                         if ($stmt) {
-                            // s = status, i = winner_id, d = final_price, i = auctionId
                             $stmt->bind_param("sidi", $statusSold, $winnerId, $finalPrice, $auctionId);
                             if ($stmt->execute()) {
                                 $success = "Auction #{$auctionId} force-finished as SOLD. "
@@ -118,25 +117,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_auction'])) {
     if ($auctionId <= 0) {
         $errors[] = 'Invalid auction ID.';
     } else {
-        $stmt = $conn->prepare("DELETE FROM auction WHERE id = ?");
+
+        $stmt = $conn->prepare("DELETE FROM bid WHERE auction_id = ?");
         if ($stmt) {
             $stmt->bind_param("i", $auctionId);
-            if ($stmt->execute()) {
-                if ($stmt->affected_rows > 0) {
-                    $success = "Auction #{$auctionId} deleted.";
-                } else {
-                    $errors[] = "Auction not found or already deleted.";
-                }
-            } else {
-                $errors[] = "Database error deleting auction: " . $stmt->error;
+            if (!$stmt->execute()) {
+                $errors[] = "Database error deleting bids: " . $stmt->error;
             }
             $stmt->close();
         } else {
-            $errors[] = "Database prepare() error: " . $conn->error;
+            $errors[] = "Database prepare() error (delete bids): " . $conn->error;
+        }
+
+        if (empty($errors)) {
+            $stmt = $conn->prepare("DELETE FROM auction WHERE id = ?");
+            if ($stmt) {
+                $stmt->bind_param("i", $auctionId);
+                if ($stmt->execute()) {
+                    if ($stmt->affected_rows > 0) {
+                        $success = "Auction #{$auctionId} deleted.";
+                    } else {
+                        $errors[] = "Auction not found or already deleted.";
+                    }
+                } else {
+                    $errors[] = "Database error deleting auction: " . $stmt->error;
+                }
+                $stmt->close();
+            } else {
+                $errors[] = "Database prepare() error (delete auction): " . $conn->error;
+            }
         }
     }
 }
-
 
 $auctions = [];
 
