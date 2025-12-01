@@ -30,6 +30,10 @@ if ($count === 0) {
     exit;
 }
 
+$statusSold   = AuctionStatus::SOLD;
+$statusUnsold = AuctionStatus::UNSOLD;
+$statusActive = AuctionStatus::ACTIVE;
+
 while ($auction = $endedAuctions->fetch_assoc()) {
     $auctionId = (int)$auction['id'];
     $auctionTitle = $auction['title'] ?? 'Auction #' . $auctionId;
@@ -69,11 +73,11 @@ while ($auction = $endedAuctions->fetch_assoc()) {
             ");
             $update->bind_param(
                 'sidis',
-                AuctionStatus::SOLD,
+                $statusSold,
                 $winnerId,
                 $winningAmount,
                 $auctionId,
-                AuctionStatus::ACTIVE
+                $statusActive
             );
             $update->execute();
             $update->close();
@@ -87,9 +91,9 @@ while ($auction = $endedAuctions->fetch_assoc()) {
             ");
             $update->bind_param(
                 'sis',
-                AuctionStatus::UNSOLD,
+                $statusUnsold,
                 $auctionId,
-                AuctionStatus::ACTIVE
+                $statusActive
             );
             $update->execute();
             $update->close();
@@ -105,9 +109,9 @@ while ($auction = $endedAuctions->fetch_assoc()) {
         ");
         $unsoldStmt->bind_param(
             'sis',
-            AuctionStatus::UNSOLD,
+            $statusUnsold,
             $auctionId,
-            AuctionStatus::ACTIVE
+            $statusActive
         );
         $unsoldStmt->execute();
         $unsoldStmt->close();
@@ -124,4 +128,4 @@ while ($auction = $endedAuctions->fetch_assoc()) {
 $endedAuctions->free();
 close_database_connection($conn);
 echo "All tasks completed.\n";
-?> 
+?>
