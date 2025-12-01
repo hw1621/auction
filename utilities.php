@@ -72,9 +72,6 @@ function display_time_remaining($interval) {
 
 }
 
-/**
- * 打印商品列表项 (大图、多文字、宽间距版)
- */
 function print_listing_li($auction_id, $title, $desc, $price, $num_bids, $end_time, $category, $image_path = null)
 {
   $desc_shortened = mb_strimwidth($desc, 0, 400, "...");
@@ -152,6 +149,8 @@ function uploadImage($fileInput, $uploadDir) {
       'filename' => null,
       'error' => null
   ];
+
+  error_log("[UploadDebug] File received: Name=" . $fileInput['name'] . ", Size=" . $fileInput['size'] . ", Temp=" . $fileInput['tmp_name']);
 
   if (!isset($fileInput) || $fileInput['error'] === UPLOAD_ERR_NO_FILE) {
       return $result; 
