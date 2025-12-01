@@ -15,7 +15,6 @@ $conn = get_database_connection();
 
 $errors = [];
 
-
 $totalUsers = 0;
 $result = $conn->query("SELECT COUNT(*) AS c FROM users");
 if ($result) {
@@ -108,7 +107,8 @@ $sql = "
         u.email,
         COUNT(*) AS auction_count
     FROM auction a
-    JOIN users u ON a.user_id = u.user_id
+    JOIN item i ON a.item_id = i.id
+    JOIN users u ON i.seller_id = u.user_id
     GROUP BY u.user_id, u.username, u.email
     ORDER BY auction_count DESC
     LIMIT 5
@@ -210,7 +210,6 @@ include_once 'header.php';
     </div>
   </div>
 
-  <!-- Top Sellers & Top Bidders -->
   <div class="row">
     <div class="col-md-6 mb-4">
       <div class="card h-100">
