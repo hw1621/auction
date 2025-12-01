@@ -18,6 +18,7 @@ $userId = (int)$_SESSION['user_id'];
 
 $sql = "
     SELECT 
+        a.id AS auction_id, 
         b.id         AS bid_id,
         b.amount     AS bid_amount,
         b.bid_time,
@@ -66,6 +67,7 @@ include_once("header.php");
         <?php while ($row = $result->fetch_assoc()): ?>
           <?php
           $title = $row['item_title'];
+          $auction_id = $row['auction_id'];          
           if (!empty($row['auction_is_anonymous'])) {
               $title = '[Anonymous] ' . $title;
           }
@@ -77,7 +79,9 @@ include_once("header.php");
           }
           ?>
           <tr>
-            <td><?= htmlspecialchars($title) ?></td>
+            <td>
+              <a href="listing.php?auction_id=<?= $auction_id ?>"><?= htmlspecialchars($title) ?></a>
+            </td>
             <td>£<?= htmlspecialchars(number_format($row['bid_amount'], 2)) ?></td>
             <td><?= htmlspecialchars($row['bid_time']) ?></td>
             <td><?= htmlspecialchars($row['end_date']) ?></td>
