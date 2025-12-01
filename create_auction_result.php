@@ -4,6 +4,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once 'config.php';
+require_once 'utilities.php';
 $conn = get_database_connection();
 
 $errors = [];
@@ -11,6 +12,10 @@ $success = false;
 $newAuctionId = null;
 $title = '';
 $imageFilename = null;
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && empty($_POST) && empty($_FILES) && $_SERVER['CONTENT_LENGTH'] > 0) {
+    $errors[] = 'The uploaded file is too large. It exceeds the server\'s post_max_size limit.';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
