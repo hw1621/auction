@@ -89,19 +89,27 @@ include_once("header.php");
             <td><?= htmlspecialchars($row['status']) ?></td>
             <td><?= htmlspecialchars($anonymityLabel) ?></td>
             <td>
-              <a
-                href="edit_bid.php?bid_id=<?= (int)$row['bid_id'] ?>"
-                class="btn btn-sm btn-primary"
-              >
-                Edit bid
-              </a>
-              <a
-                href="cancel_bid.php?bid_id=<?= (int)$row['bid_id'] ?>"
-                class="btn btn-sm btn-outline-danger"
-                onclick="return confirm('Are you sure you want to cancel this bid?');"
-              >
-                Cancel bid
-              </a>
+              <?php
+                $status = $row['status']; // active / cancelled / ended ...
+              ?>
+
+              <?php if ($status === 'active'): ?>
+                <a
+                  href="edit_bid.php?bid_id=<?= (int)$row['bid_id'] ?>"
+                  class="btn btn-sm btn-primary"
+                >
+                  Edit
+                </a>
+                <a
+                  href="cancel_bid.php?bid_id=<?= (int)$row['bid_id'] ?>"
+                  class="btn btn-sm btn-outline-danger"
+                  onclick="return confirm('Are you sure you want to cancel this bid?');"
+                >
+                  Cancel
+                </a>
+              <?php else: ?>
+                <span class="text-muted">No actions</span>
+              <?php endif; ?>
             </td>
           </tr>
         <?php endwhile; ?>
