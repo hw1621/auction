@@ -122,9 +122,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($bidSuccess) {
             $success = true;
+            $emailed_users = [];
 
             $sqlNotify = "
-                SELECT DISTINCT u.email 
+                SELECT u.email, b.amount
                 FROM bid b
                 JOIN users u ON b.bidder_id = u.user_id 
                 WHERE b.auction_id = ? 
@@ -138,22 +139,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $resNotify = $stmtNotify->get_result();
                 
                 $host = $_SERVER['HTTP_HOST']; 
-                $link = "http://$host/listing.php?auction_id=$auctionIdInt";
-                
+                $link = "http://$host/listing.php?auction_id=$auctionIdInt";                
                 $subject = "Outbid Alert: " . $auctionTitle;
-                $message = "
-                    <h3>You have been outbid!</h3>
-                    <p>A new bid of <strong>£" . number_format($amountFloat, 2) . "</strong> has been placed on item:</p>
-                    <p style='font-size:1.2em'><strong>" . htmlspecialchars($auctionTitle) . "</strong></p>
-                    <hr>
-                    <p>Don't lose out! <a href='$link' style='background:#007bff;color:#fff;padding:5px 10px;text-decoration:none;border-radius:3px;'>Place a New Bid</a></p>
-                ";
                 
                 while ($user = $resNotify->fetch_assoc()) {
                     $recipientEmail = $user['email'];
+                    $theirBid = $user['amount'];
+                    $message = "
+                        <h3>You have been outbid!</h3>
+                        <p>A new highest bid of <strong style='color:#d9534f; font-size:1.2em;'>£" . number_format($amountFloat, 2) . "</strong> has been placed on item:</p>
+                        <p style='font-size:1.1em'><strong>" . htmlspecialchars($auctionTitle) . "</strong></p>
+                        
+                        <div style='background-color:#f8f9fa; padding:10px; border-left: 4px solid #d9534f; margin: 15px 0;'>
+                            <p style='margin:0; color:#555;'>Your current bid is: <strong>£" . number_format($theirBid, 2) . "</strong></p>
+                        </div>
+
+                        <hr>
+                        <p>Don't lose out! <a href='$link' style='background:#007bff;color:#fff;padding:8px 15px;text-decoration:none;border-radius:4px;display:inline-block;'>Place a New Bid</a></p>
+                    ";
                     @send_email($recipientEmail, $subject, $message);
+                    $emailed_users[] = $recipientEmail;
                 }
                 $stmtNotify->close();
+            }
+
+            // Notify watchers who haven't bid
+            $sqlWatch = "
+                SELECT DISTINCT u.email 
+                FROM watchlist w
+                JOIN users u ON w.user_id = u.user_id
+                WHERE w.auction_id = ?
+                AND w.user_id != ? 
+            ";
+
+            $stmtWatch = $conn->prepare($sqlWatch);
+            if ($stmtWatch) {
+                $stmtWatch->bind_param("ii", $auctionIdInt, $userId);
+                $stmtWatch->execute();
+                $resWatch = $stmtWatch->get_result();
+
+                $subjectWatch = "Price Update: " . $auctionTitle;
+
+                while ($watcher = $resWatch->fetch_assoc()) {
+                    $recipientEmail = $watcher['email'];
+
+                    if (in_array($recipientEmail, $emailed_users)) {
+                        continue; 
+                    }
+
+                    $message = "
+                        <h3>Price Update</h3>
+                        <p>An item on your watchlist has a new bid.</p>
+                        <p>Item: <strong>" . htmlspecialchars($auctionTitle) . "</strong></p>
+                        <p>New Price: <strong style='color:#007bff; font-size:1.2em;'>£" . number_format($amountFloat, 2) . "</strong></p>
+                        <hr>
+                        <p><a href='$link' style='background:#007bff;color:#fff;padding:8px 15px;text-decoration:none;border-radius:4px;'>View Auction</a></p>
+                    ";
+
+                    @send_email($recipientEmail, $subjectWatch, $message);
+                    
+                    $emailed_users[] = $recipientEmail;
+                }
+                $stmtWatch->close();
             }
         }
     }
