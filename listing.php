@@ -249,10 +249,10 @@ $display_seller_email = $auction_is_anon ? 'Hidden for anonymous auction' : $sel
                     <table class="table table-borderless rank-table">
                         <thead>
                             <tr>
-                                <th scope="col">Rank</th>
+                                <th scope="col" style="width: 50px;">Rank</th>                                
                                 <th scope="col">Bidder</th>
                                 <th scope="col" class="text-right">Amount</th>
-                                <th scope="col" class="text-right">Time</th>
+                                <th scope="col" class="text-right">Date</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -301,15 +301,13 @@ $display_seller_email = $auction_is_anon ? 'Hidden for anonymous auction' : $sel
                                             $bidder_display = "Unknown";
                                         }
                                     }
-
-                                    echo "
-                                        <tr>
-                                            <td>$badge</td>
-                                            <td>".htmlspecialchars($bidder_display)."</td>
-                                            <td class='text-right font-weight-bold'>£".number_format($bid_row['amount'], 2)."</td>
-                                            <td class='text-right text-muted'>".$bid_time->format('H:i')."</td>
-                                        </tr>
-                                    ";
+                                    
+                                    echo "<tr>";
+                                    echo "<td>$badge</td>";
+                                    echo "<td class='text-truncate' style='max-width: 120px;'>".htmlspecialchars($bidder_display)."</td>";
+                                    echo "<td class='text-right font-weight-bold'>£".number_format($bid_row['amount'], 2)."</td>";
+                                    echo "<td class='text-right text-muted' style='white-space: nowrap; font-size: 0.85rem;'>" . $bid_time->format('M j, H:i') . "</td>";
+                                    echo "</tr>";
 
                                     $rank++;
                                 }

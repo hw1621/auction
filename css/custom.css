@@ -27,7 +27,7 @@ body {
 /* 右侧信息悬浮面板 */
 .lot-info-panel {
     background: #fff;
-    padding: 40px;
+    padding: 20px;
     border: 1px solid #eee;
     box-shadow: 0 5px 25px rgba(0,0,0,0.03);
 }
