@@ -60,6 +60,7 @@ include_once("header.php");
           <th>Auction ends</th>
           <th>Status</th>
           <th>Anonymity</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -83,6 +84,14 @@ include_once("header.php");
             <td><?= htmlspecialchars($row['end_date']) ?></td>
             <td><?= htmlspecialchars($row['status']) ?></td>
             <td><?= htmlspecialchars($anonymityLabel) ?></td>
+            <td>
+              <a
+                href="edit_bid.php?bid_id=<?= (int)$row['bid_id'] ?>"
+                class="btn btn-sm btn-primary"
+              >
+                Edit bid
+              </a>
+            </td>
           </tr>
         <?php endwhile; ?>
       </tbody>
