@@ -1,6 +1,70 @@
 <?php include_once("header.php")?>
 <?php require_once("utilities.php")?>
+<style>
+.rec-hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 40px 20px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+.rec-hero h2 { font-weight: 700; margin-bottom: 10px; }
+.rec-hero p { opacity: 0.9; font-size: 1.1rem; }
 
+.auction-card {
+    transition: all 0.3s ease;
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+}
+.auction-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+}
+
+.card-img-container {
+    height: 200px;
+    background-color: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+}
+
+.card-img-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.card-img-placeholder {
+    color: #adb5bd;
+    font-size: 3rem;
+}
+
+.price-tag {
+    color: #2c3e50;
+    font-weight: 800;
+    font-size: 1.25rem;
+}
+
+.match-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    color: #e84393;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    z-index: 2;
+}
+</style>
 
 <?php
 function get_user_recommendations($conn, $userId, $limit = 10) {
