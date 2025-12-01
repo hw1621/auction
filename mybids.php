@@ -91,6 +91,13 @@ include_once("header.php");
               >
                 Edit bid
               </a>
+              <a
+                href="cancel_bid.php?bid_id=<?= (int)$row['bid_id'] ?>"
+                class="btn btn-sm btn-outline-danger"
+                onclick="return confirm('Are you sure you want to cancel this bid?');"
+              >
+                Cancel bid
+              </a>
             </td>
           </tr>
         <?php endwhile; ?>
