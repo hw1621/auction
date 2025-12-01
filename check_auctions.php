@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/config.php';
-
+echo "Cron run at: " . date('Y-m-d H:i:s') . "\n";
 $conn = get_database_connection();
 
 $auctionQuery = sprintf(
