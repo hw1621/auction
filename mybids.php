@@ -95,10 +95,10 @@ include_once("header.php");
 
               <?php if ($status === 'active'): ?>
                 <a
-                  href="edit_bid.php?bid_id=<?= (int)$row['bid_id'] ?>"
+                  href="listing.php?auction_id=<?= $row['auction_id'] ?>"
                   class="btn btn-sm btn-primary"
                 >
-                  Edit
+                  Update
                 </a>
                 <a
                   href="cancel_bid.php?bid_id=<?= (int)$row['bid_id'] ?>"
