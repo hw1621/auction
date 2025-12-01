@@ -1,66 +1,6 @@
 <?php include_once("header.php")?>
-<?php require("utilities.php")?>
+<?php require_once("utilities.php")?>
 
-<style>
-    /* 顶部 Hero 区域 */
-    .rec-hero {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 40px 20px;
-        border-radius: 10px;
-        margin-bottom: 30px;
-        text-align: center;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
-    .rec-hero h2 { font-weight: 700; margin-bottom: 10px; }
-    .rec-hero p { opacity: 0.9; font-size: 1.1rem; }
-
-    /* 卡片交互效果 */
-    .auction-card {
-        transition: all 0.3s ease;
-        border: none;
-        border-radius: 12px;
-        overflow: hidden;
-    }
-    .auction-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.15);
-    }
-
-    /* 模拟图片区域 */
-    .card-img-placeholder {
-        height: 180px;
-        background-color: #f8f9fa;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #adb5bd;
-        font-size: 3rem;
-        position: relative;
-    }
-    
-    /* 价格高亮 */
-    .price-tag {
-        color: #2c3e50;
-        font-weight: 800;
-        font-size: 1.25rem;
-    }
-
-    /* 推荐匹配度徽章 */
-    .match-badge {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background: rgba(255, 255, 255, 0.9);
-        color: #e84393;
-        padding: 5px 12px;
-        border-radius: 20px;
-        font-weight: bold;
-        font-size: 0.85rem;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        z-index: 2;
-    }
-</style>
 
 <?php
 function get_user_recommendations($conn, $userId, $limit = 10) {
@@ -73,6 +13,7 @@ function get_user_recommendations($conn, $userId, $limit = 10) {
             a.start_price, 
             a.end_date,
             a.item_id,
+            i.image_path,
             COUNT(DISTINCT other_bids.bidder_id) AS relevance_score
         FROM bid AS my_bids
         JOIN bid AS peer_bids 
@@ -81,6 +22,8 @@ function get_user_recommendations($conn, $userId, $limit = 10) {
             ON peer_bids.bidder_id = other_bids.bidder_id 
         JOIN auction AS a 
             ON other_bids.auction_id = a.id
+        JOIN item AS i 
+            ON a.item_id = i.id
         WHERE 
             my_bids.bidder_id = ?           
             AND peer_bids.bidder_id != ?    
@@ -133,62 +76,15 @@ function get_user_recommendations($conn, $userId, $limit = 10) {
                 Login / Register
             </a>
         </div>';
-        echo '</div>'; // close container
+        echo '</div>';
         include_once("footer.php"); 
         exit();
-      }
+    }
 
-      //TODO: 需要确认这个变量被放到session里面了
-      $current_user_id = $_SESSION['user_id'];
-      
-      // ==========================================
-      // MOCK DATA 开关 (测试完成后，把这里改成 false)
-      // ==========================================
-      $use_mock_data = true; 
-      
-      if ($use_mock_data) {
-          $recommendations = [
-              [
-                  'id' => 101,
-                  'title' => 'Vintage Rolex Submariner 1985',
-                  'start_price' => 4500.00,
-                  'end_date' => date('Y-m-d H:i:s', strtotime('+2 days 5 hours')),
-                  'relevance_score' => 12
-              ],
-              [
-                  'id' => 102,
-                  'title' => 'Sony PlayStation 5 - Digital Edition',
-                  'start_price' => 350.00,
-                  'end_date' => date('Y-m-d H:i:s', strtotime('+4 hours')),
-                  'relevance_score' => 45
-              ],
-              [
-                  'id' => 103,
-                  'title' => 'Rare Pokémon Card - Charizard Holo',
-                  'start_price' => 120.50,
-                  'end_date' => date('Y-m-d H:i:s', strtotime('+1 day')),
-                  'relevance_score' => 8
-              ],
-              [
-                  'id' => 104,
-                  'title' => 'Herman Miller Aeron Chair',
-                  'start_price' => 300.00,
-                  'end_date' => date('Y-m-d H:i:s', strtotime('+5 days')),
-                  'relevance_score' => 5
-              ],
-              [
-                  'id' => 105,
-                  'title' => 'MacBook Pro M2 16-inch',
-                  'start_price' => 1800.00,
-                  'end_date' => date('Y-m-d H:i:s', strtotime('+30 minutes')),
-                  'relevance_score' => 22
-              ]
-          ];
-      } else {
-          $conn = get_database_connection();
-          $recommendations = get_user_recommendations($conn, $current_user_id);
-          close_database_connection($conn);
-      }
+        $current_user_id = $_SESSION['user_id'];
+        $conn = get_database_connection();
+        $recommendations = get_user_recommendations($conn, $current_user_id);
+        close_database_connection($conn);
     ?>
 
     <div class="rec-hero">
@@ -230,6 +126,7 @@ function get_user_recommendations($conn, $userId, $limit = 10) {
                     }
                     
                     $relevance = $item['relevance_score'];
+                    $image_path = $item['image_path'];
                 ?>
                 
                 <div class="col-md-4 col-sm-6 mb-4">
@@ -238,8 +135,14 @@ function get_user_recommendations($conn, $userId, $limit = 10) {
                             <i class="fa fa-fire"></i> <?php echo $relevance; ?> Interested
                         </div>
 
-                        <div class="card-img-placeholder">
-                            <i class="fa fa-image"></i>
+                        <div class="card-img-container">
+                            <?php if (!empty($image_path) && file_exists(__DIR__ . '/uploads/' . $image_path)): ?>
+                                <img src="uploads/<?php echo htmlspecialchars($image_path); ?>" alt="<?php echo $title; ?>">
+                            <?php else: ?>
+                                <div class="card-img-placeholder">
+                                    <i class="fa fa-image"></i>
+                                </div>
+                            <?php endif; ?>
                         </div>
 
                         <div class="card-body d-flex flex-column">
@@ -259,7 +162,7 @@ function get_user_recommendations($conn, $userId, $limit = 10) {
                                     <small class="<?php echo $is_urgent ? 'text-danger font-weight-bold' : 'text-muted'; ?>">
                                         <i class="fa fa-clock-o"></i> <?php echo $remaining; ?>
                                     </small>
-                                    <a href="listing.php?item_id=<?php echo $item_id; ?>" class="btn btn-sm btn-primary px-3 rounded-pill">
+                                    <a href="listing.php?auction_id=<?php echo $item_id; ?>" class="btn btn-sm btn-primary px-3 rounded-pill">
                                         Bid Now
                                     </a>
                                 </div>
