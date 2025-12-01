@@ -94,7 +94,7 @@ include_once("header.php");
               <?php if ($status === 'active'): ?>
                 <a 
                   href="edit_auction.php?auction_id=<?= $auctionId ?>" 
-                  class="btn btn-sm btn-primary mb-1">
+                  class="btn btn-sm btn-primary">
                   Edit
                 </a>
                 <a 
