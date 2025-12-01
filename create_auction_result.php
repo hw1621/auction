@@ -122,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     is_anonymous,
                     hide_bidders
                 ) VALUES (
-                    ?, ?, ?, ?, ?, ?, 'active', ?, ?
+                    ?, ?, ?, ?, ?, 'active', ?, ?
                 )
             ";
             
