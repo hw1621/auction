@@ -107,8 +107,8 @@
   $group_by_sql = " GROUP BY a.id ";
   
   switch ($ordering) {
-      case 'pricelow': $order_sql = " ORDER BY a.start_price ASC "; break;
-      case 'pricehigh': $order_sql = " ORDER BY a.start_price DESC "; break;
+      case 'pricelow': $order_sql = " ORDER BY current_price ASC "; break;
+      case 'pricehigh': $order_sql = " ORDER BY current_price DESC "; break;
       case 'date': default: $order_sql = " ORDER BY a.end_date ASC "; break;
   }
 
