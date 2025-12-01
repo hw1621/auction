@@ -68,7 +68,7 @@ include_once("header.php");
           <th>Start price</th>
           <th>End date</th>
           <th>Status</th>
-          <th>Edit</th>
+          <th>Action</th>
         </tr>
       </thead>
       <tbody>
@@ -86,11 +86,26 @@ include_once("header.php");
             <td><?= htmlspecialchars($row['end_date']) ?></td>
             <td><?= htmlspecialchars($row['status']) ?></td>
             <td>
-              <a 
-                href="edit_auction.php?auction_id=<?= $row['auction_id'] ?>" 
-                class="btn btn-sm btn-primary">
-                Edit
-              </a>
+              <?php
+                $auctionId = (int)$row['auction_id'];
+                $status    = $row['status'];
+              ?>
+
+              <?php if ($status === 'active'): ?>
+                <a 
+                  href="edit_auction.php?auction_id=<?= $auctionId ?>" 
+                  class="btn btn-sm btn-primary mb-1">
+                  Edit
+                </a>
+                <a 
+                  href="cancel_mylisting.php?auction_id=<?= $auctionId ?>" 
+                  class="btn btn-sm btn-outline-danger"
+                  onclick="return confirm('Are you sure you want to cancel this listing?');">
+                  Cancel
+                </a>
+              <?php else: ?>
+                <span class="text-muted">No actions</span>
+              <?php endif; ?>
             </td>
           </tr>
         <?php endwhile; ?>
