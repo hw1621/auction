@@ -24,20 +24,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['force_finish'])) {
         $errors[] = "Invalid auction ID for force finish.";
     } else {
         $stmt = $conn->prepare("SELECT status FROM auction WHERE id = ?");
-        if (!$stmt) {
-            $errors[] = "Prepare failed: " . $conn->error;
-        } else {
+        if ($stmt) {
             $stmt->bind_param("i", $auctionId);
             $stmt->execute();
             $result = $stmt->get_result();
             $auctionRow = $result->fetch_assoc();
             $stmt->close();
 
-            if (!$auctionRow) {
-                $errors[] = "Auction not found.";
-            } elseif ($auctionRow['status'] !== AuctionStatus::ACTIVE) {
-                $errors[] = "Auction is not active, cannot be force-finished.";
-            } else {
+            if ($auctionRow && $auctionRow['status'] === AuctionStatus::ACTIVE) {
 
                 $stmt = $conn->prepare("
                     SELECT bidder_id, amount
@@ -46,9 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['force_finish'])) {
                     ORDER BY amount DESC, id DESC
                     LIMIT 1
                 ");
-                if (!$stmt) {
-                    $errors[] = "Prepare failed (bids): " . $conn->error;
-                } else {
+                if ($stmt) {
                     $stmt->bind_param("i", $auctionId);
                     $stmt->execute();
                     $result = $stmt->get_result();
@@ -62,23 +54,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['force_finish'])) {
 
                         $stmt = $conn->prepare("
                             UPDATE auction
-                            SET status = ?, 
-                                winner_id = ?, 
-                                final_price = ?, 
-                                end_date = NOW()
+                            SET status = ?, winner_id = ?, final_price = ?, end_date = NOW()
                             WHERE id = ?
                         ");
                         if ($stmt) {
                             $stmt->bind_param("sidi", $statusSold, $winnerId, $finalPrice, $auctionId);
                             if ($stmt->execute()) {
-                                $success = "Auction #{$auctionId} force-finished as SOLD. "
-                                         . "Winner seller_id = {$winnerId}, final price = {$finalPrice}.";
-                            } else {
-                                $errors[] = "Error updating auction (sold): " . $stmt->error;
+                                $success = "Auction #{$auctionId} force-finished as SOLD.";
                             }
                             $stmt->close();
-                        } else {
-                            $errors[] = "Prepare failed (update sold): " . $conn->error;
                         }
 
                     } else {
@@ -86,25 +70,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['force_finish'])) {
 
                         $stmt = $conn->prepare("
                             UPDATE auction
-                            SET status = ?, 
-                                winner_id = NULL, 
-                                final_price = NULL, 
-                                end_date = NOW()
+                            SET status = ?, winner_id = NULL, final_price = NULL, end_date = NOW()
                             WHERE id = ?
                         ");
                         if ($stmt) {
                             $stmt->bind_param("si", $statusUnsold, $auctionId);
                             if ($stmt->execute()) {
-                                $success = "Auction #{$auctionId} force-finished as UNSOLD (no bids).";
-                            } else {
-                                $errors[] = "Error updating auction (unsold): " . $stmt->error;
+                                $success = "Auction #{$auctionId} force-finished as UNSOLD.";
                             }
                             $stmt->close();
-                        } else {
-                            $errors[] = "Prepare failed (update unsold): " . $conn->error;
                         }
                     }
+
                 }
+
+            } else {
+                $errors[] = "Auction cannot be force-finished.";
             }
         }
     }
@@ -114,38 +95,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_auction'])) {
 
     $auctionId = (int)($_POST['auction_id'] ?? 0);
 
-    if ($auctionId <= 0) {
-        $errors[] = 'Invalid auction ID.';
-    } else {
+    if ($auctionId > 0) {
 
         $stmt = $conn->prepare("DELETE FROM bid WHERE auction_id = ?");
         if ($stmt) {
             $stmt->bind_param("i", $auctionId);
-            if (!$stmt->execute()) {
-                $errors[] = "Database error deleting bids: " . $stmt->error;
-            }
+            $stmt->execute();
             $stmt->close();
-        } else {
-            $errors[] = "Database prepare() error (delete bids): " . $conn->error;
         }
 
-        if (empty($errors)) {
-            $stmt = $conn->prepare("DELETE FROM auction WHERE id = ?");
-            if ($stmt) {
-                $stmt->bind_param("i", $auctionId);
-                if ($stmt->execute()) {
-                    if ($stmt->affected_rows > 0) {
-                        $success = "Auction #{$auctionId} deleted.";
-                    } else {
-                        $errors[] = "Auction not found or already deleted.";
-                    }
-                } else {
-                    $errors[] = "Database error deleting auction: " . $stmt->error;
-                }
-                $stmt->close();
-            } else {
-                $errors[] = "Database prepare() error (delete auction): " . $conn->error;
+        $stmt = $conn->prepare("DELETE FROM auction WHERE id = ?");
+        if ($stmt) {
+            $stmt->bind_param("i", $auctionId);
+            if ($stmt->execute()) {
+                $success = "Auction #{$auctionId} deleted.";
             }
+            $stmt->close();
         }
     }
 }
@@ -163,9 +128,10 @@ $query = "
         a.final_price,
         a.winner_id,
         u.username AS seller_name,
-        u.email    AS seller_email
+        u.email AS seller_email
     FROM auction a
-    JOIN users u ON a.seller_id = u.user_id
+    JOIN item i ON a.item_id = i.id
+    JOIN users u ON i.seller_id = u.user_id
     ORDER BY a.id DESC
 ";
 
@@ -174,8 +140,6 @@ $result = $conn->query($query);
 if ($result) {
     $auctions = $result->fetch_all(MYSQLI_ASSOC);
     $result->close();
-} else {
-    $errors[] = "Database error loading auctions: " . $conn->error;
 }
 
 include_once 'header.php';
@@ -229,28 +193,19 @@ include_once 'header.php';
           </td>
           <td>£<?= htmlspecialchars($a['start_price']) ?></td>
           <td>
-            <?= $a['reserve_price'] === null
-                ? '<span class="text-muted">None</span>'
-                : '£' . htmlspecialchars($a['reserve_price']) ?>
+            <?= $a['reserve_price'] === null ? '—' : '£' . htmlspecialchars($a['reserve_price']) ?>
           </td>
           <td><?= htmlspecialchars($a['end_date']) ?></td>
           <td><?= htmlspecialchars($a['status']) ?></td>
           <td>
-            <?= $a['final_price'] === null
-                ? '<span class="text-muted">—</span>'
-                : '£' . htmlspecialchars($a['final_price']) ?>
+            <?= $a['final_price'] === null ? '—' : '£' . htmlspecialchars($a['final_price']) ?>
           </td>
           <td>
-            <?= $a['winner_id'] === null
-                ? '<span class="text-muted">—</span>'
-                : (int)$a['winner_id'] ?>
+            <?= $a['winner_id'] === null ? '—' : (int)$a['winner_id'] ?>
           </td>
-
           <td>
             <?php if ($a['status'] === AuctionStatus::ACTIVE): ?>
-              <form method="post" action="admin_auctions.php"
-                    onsubmit="return confirm('Force finish auction #<?= (int)$a['id'] ?> ?');"
-                    style="display:inline-block; margin-bottom:4px;">
+              <form method="post" action="admin_auctions.php" style="display:inline-block;">
                 <input type="hidden" name="auction_id" value="<?= (int)$a['id'] ?>">
                 <button type="submit" name="force_finish" class="btn btn-sm btn-warning">
                   Force finish
@@ -258,9 +213,7 @@ include_once 'header.php';
               </form>
             <?php endif; ?>
 
-            <form method="post" action="admin_auctions.php"
-                  onsubmit="return confirm('Delete auction #<?= (int)$a['id'] ?> ?');"
-                  style="display:inline-block;">
+            <form method="post" action="admin_auctions.php" style="display:inline-block;">
               <input type="hidden" name="auction_id" value="<?= (int)$a['id'] ?>">
               <button type="submit" name="delete_auction" class="btn btn-sm btn-danger">
                 Delete
