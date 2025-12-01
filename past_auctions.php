@@ -25,8 +25,8 @@ $sql = "
         seller.email      AS seller_email,
         i.title           AS item_title
     FROM auction a
-    JOIN users seller ON a.user_id = seller.user_id
-    JOIN item  i      ON a.item_id = i.id
+    JOIN item  i      ON a.item_id   = i.id
+    JOIN users seller ON i.seller_id = seller.user_id
     WHERE a.end_date < NOW()
     ORDER BY a.end_date DESC
 ";
