@@ -132,9 +132,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $auctionStmt->bind_param(
-                'iisddsii',
+                'isddsii',
                 $itemId,
-                $sellerId,
                 $title,
                 $startPriceFloat,
                 $reserveOrNull,
