@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['force_finish'])) {
                             $stmt->bind_param("sidi", $statusSold, $winnerId, $finalPrice, $auctionId);
                             if ($stmt->execute()) {
                                 $success = "Auction #{$auctionId} force-finished as SOLD. "
-                                         . "Winner user_id = {$winnerId}, final price = {$finalPrice}.";
+                                         . "Winner seller_id = {$winnerId}, final price = {$finalPrice}.";
                             } else {
                                 $errors[] = "Error updating auction (sold): " . $stmt->error;
                             }
@@ -165,7 +165,7 @@ $query = "
         u.username AS seller_name,
         u.email    AS seller_email
     FROM auction a
-    JOIN users u ON a.user_id = u.user_id
+    JOIN users u ON a.seller_id = u.user_id
     ORDER BY a.id DESC
 ";
 
