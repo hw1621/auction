@@ -136,7 +136,7 @@ function print_listing_li($auction_id, $title, $desc, $price, $num_bids, $end_ti
             <div class="mb-2">
                 <small class="' . $time_class . '"><i class="fa fa-clock-o"></i> ' . $time_remaining . '</small>
             </div>
-            <a href="listing.php?item_id=' . $auction_id . '" class="btn btn-outline-primary btn-block">View Lot</a>
+            <a href="listing.php?auction_id=' . $auction_id . '" class="btn btn-outline-primary btn-block">View Lot</a>
         </div>
     </div>
   </li>';
