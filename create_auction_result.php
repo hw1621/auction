@@ -114,7 +114,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $auctionSql = "
                 INSERT INTO auction (
                     item_id, 
-                    user_id, 
                     title, 
                     start_price, 
                     reserve_price, 
