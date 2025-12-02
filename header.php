@@ -64,6 +64,9 @@ if (session_status() === PHP_SESSION_NONE) {
     </li>
     <li class="nav-item mx-1">
       <a class="nav-link" href="recommendations.php">Recommendations</a>
+    </li>
+    <li class="nav-item mx-1">
+      <a class="nav-link" href="mywatchlist.php">My Watchlist</a>
     </li>');
   }
   if (isset($_SESSION['account_type']) && $_SESSION['account_type'] == 'seller') {
