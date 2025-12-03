@@ -211,7 +211,7 @@ function get_user_recommendations($conn, $userId, $limit = 10) {
 
                         <div class="card-body d-flex flex-column">
                             <h5 class="card-title text-truncate" title="<?php echo $title; ?>">
-                                <a href="listing.php?item_id=<?php echo $item_id; ?>" class="text-dark text-decoration-none">
+                                <a href="listing.php?auction_id=<?php echo $item_id; ?>" class="text-dark text-decoration-none">
                                     <?php echo $title; ?>
                                 </a>
                             </h5>
