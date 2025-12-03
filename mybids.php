@@ -131,7 +131,7 @@ include_once("header.php");
               <?php if ($statusUpper === 'ACTIVE'): ?>
                 
                 <div class="d-inline-flex align-items-center">
-                    <a href="listing.php?item_id=<?= $auction_id ?>" 
+                    <a href="listing.php?auction_id=<?= $auction_id ?>" 
                        class="text-primary mr-3" 
                        style="font-weight: 600; text-decoration: none; font-size: 0.9rem;">
                        Update
