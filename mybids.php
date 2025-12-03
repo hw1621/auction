@@ -107,7 +107,7 @@ include_once("header.php");
           
           <tr>
             <td class="align-middle">
-              <a href="listing.php?item_id=<?= $auction_id ?>" class="font-weight-bold text-dark" style="text-decoration:none;">
+              <a href="listing.php?auction_id=<?= $auction_id ?>" class="font-weight-bold text-dark" style="text-decoration:none;">
                   <?= htmlspecialchars($title) ?>
               </a>
             </td>
