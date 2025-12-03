@@ -23,11 +23,14 @@ $sql = "
         a.hide_bidders,
         seller.username   AS seller_name,
         seller.email      AS seller_email,
-        i.title           AS item_title
+        i.title           AS item_title,
+        i.description     AS item_description,
+        i.image_path      AS item_image
     FROM auction a
     JOIN item  i      ON a.item_id   = i.id
     JOIN users seller ON i.seller_id = seller.user_id
     WHERE a.end_date < NOW()
+      AND a.status = 'sold'
     ORDER BY a.end_date DESC
 ";
 
@@ -48,7 +51,7 @@ include_once 'header.php';
     <i class="fa fa-history mr-2"></i>Past Auctions
   </h2>
   <p class="text-muted">
-    Below are auctions that have already ended on the site.
+    Below are auctions that have already ended and been sold on the site.
   </p>
 
   <?php if (!empty($errors)): ?>
@@ -63,7 +66,7 @@ include_once 'header.php';
 
   <?php if (!$auctions): ?>
     <div class="alert alert-info mt-3">
-      There are no past auctions yet.
+      There are no past sold auctions yet.
     </div>
   <?php else: ?>
 
@@ -73,14 +76,14 @@ include_once 'header.php';
           <table class="table table-striped table-bordered mb-0 align-middle">
             <thead class="thead-light">
               <tr>
-                <th>ID</th>
-                <th>Auction title</th>
+                <th style="width: 50px;">ID</th>
+                <th style="width: 220px;">Auction title</th>
                 <th>Item</th>
-                <th>Seller</th>
-                <th>Winner</th>
-                <th class="text-right">Final price</th>
-                <th class="text-right">End date</th>
-                <th class="text-center">Result</th>
+                <th style="width: 180px;">Seller</th>
+                <th style="width: 120px;">Winner</th>
+                <th class="text-right" style="width: 110px;">Final price</th>
+                <th class="text-right" style="width: 150px;">End date</th>
+                <th class="text-center" style="width: 80px;">Result</th>
               </tr>
             </thead>
             <tbody>
@@ -110,34 +113,58 @@ include_once 'header.php';
                       $displayWinner = 'ID: ' . (int)$a['winner_id'];
                   }
               }
+
+              $itemImage = $a['item_image'] ?? '';
               ?>
               <tr>
                 <td><?= (int)$a['id'] ?></td>
+
                 <td>
                   <div class="font-weight-semibold">
                     <?= htmlspecialchars($a['auction_title']) ?>
                   </div>
                 </td>
-                <td><?= htmlspecialchars($a['item_title']) ?></td>
+
+                <td>
+                  <div class="d-flex align-items-center">
+                    <?php if (!empty($itemImage)): ?>
+                      <img
+                        src="uploads/<?= htmlspecialchars($itemImage) ?>"
+                        alt="Item image"
+                        style="width: 60px; height: 60px; object-fit: cover; margin-right: 10px;"
+                      >
+                    <?php endif; ?>
+
+                    <div>
+                      <strong><?= htmlspecialchars($a['item_title']) ?></strong><br>
+                      <?php if (!empty($a['item_description'])): ?>
+                        <small class="text-muted">
+                          <?= htmlspecialchars(mb_strimwidth($a['item_description'], 0, 80, '...')) ?>
+                        </small>
+                      <?php endif; ?>
+                    </div>
+                  </div>
+                </td>
+
                 <td>
                   <?= htmlspecialchars($displaySellerName) ?><br>
                   <small class="text-muted">
                     <?= htmlspecialchars($displaySellerEmail) ?>
                   </small>
                 </td>
+
                 <td><?= htmlspecialchars($displayWinner) ?></td>
+
                 <td class="text-right">
-                  <?php if ($a['final_price'] === null): ?>
-                    <span class="text-muted">—</span>
-                  <?php else: ?>
-                    £<?= number_format((float)$a['final_price'], 2) ?>
-                  <?php endif; ?>
+                  £<?= number_format((float)$a['final_price'], 2) ?>
                 </td>
+
                 <td class="text-right">
                   <small class="text-monospace">
                     <?= htmlspecialchars($a['end_date']) ?>
                   </small>
                 </td>
+
                 <td class="text-center">
                   <span class="badge badge-pill <?= $badgeClass ?>">
                     <?= $resultText ?>
