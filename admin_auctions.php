@@ -17,7 +17,6 @@ $errors  = [];
 $success = "";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['force_finish'])) {
-
     $auctionId = (int)($_POST['auction_id'] ?? 0);
 
     if ($auctionId <= 0) {
@@ -81,9 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['force_finish'])) {
                             $stmt->close();
                         }
                     }
-
                 }
-
             } else {
                 $errors[] = "Auction cannot be force-finished.";
             }
@@ -92,25 +89,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['force_finish'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_auction'])) {
-
     $auctionId = (int)($_POST['auction_id'] ?? 0);
 
-    if ($auctionId > 0) {
-
-        $stmt = $conn->prepare("DELETE FROM bid WHERE auction_id = ?");
+    if ($auctionId <= 0) {
+        $errors[] = 'Invalid auction ID.';
+    } else {
+        $statusCancelled = AuctionStatus::CANCELLED;
+        $stmt = $conn->prepare("
+            UPDATE auction
+            SET status = ?
+            WHERE id = ?
+        ");
         if ($stmt) {
-            $stmt->bind_param("i", $auctionId);
-            $stmt->execute();
-            $stmt->close();
-        }
-
-        $stmt = $conn->prepare("DELETE FROM auction WHERE id = ?");
-        if ($stmt) {
-            $stmt->bind_param("i", $auctionId);
+            $stmt->bind_param("si", $statusCancelled, $auctionId);
             if ($stmt->execute()) {
-                $success = "Auction #{$auctionId} deleted.";
+                if ($stmt->affected_rows > 0) {
+                    $success = "Auction #{$auctionId} has been cancelled.";
+                } else {
+                    $errors[] = "Auction not found or already cancelled.";
+                }
+            } else {
+                $errors[] = "Database error cancelling auction: " . $stmt->error;
             }
             $stmt->close();
+        } else {
+            $errors[] = "Database prepare() error (cancel auction): " . $conn->error;
         }
     }
 }
@@ -128,9 +131,9 @@ $query = "
         a.final_price,
         a.winner_id,
         u.username AS seller_name,
-        u.email AS seller_email
+        u.email    AS seller_email
     FROM auction a
-    JOIN item i ON a.item_id = i.id
+    JOIN item  i ON a.item_id   = i.id
     JOIN users u ON i.seller_id = u.user_id
     ORDER BY a.id DESC
 ";
@@ -140,6 +143,8 @@ $result = $conn->query($query);
 if ($result) {
     $auctions = $result->fetch_all(MYSQLI_ASSOC);
     $result->close();
+} else {
+    $errors[] = "Database error loading auctions: " . $conn->error;
 }
 
 include_once 'header.php';
@@ -216,7 +221,7 @@ include_once 'header.php';
             <form method="post" action="admin_auctions.php" style="display:inline-block;">
               <input type="hidden" name="auction_id" value="<?= (int)$a['id'] ?>">
               <button type="submit" name="delete_auction" class="btn btn-sm btn-danger">
-                Delete
+                Cancel
               </button>
             </form>
           </td>
