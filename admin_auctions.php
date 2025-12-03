@@ -31,7 +31,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['force_finish'])) {
             $stmt->close();
 
             if ($auctionRow && $auctionRow['status'] === AuctionStatus::ACTIVE) {
-
                 $stmt = $conn->prepare("
                     SELECT bidder_id, amount
                     FROM bid
@@ -63,7 +62,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['force_finish'])) {
                             }
                             $stmt->close();
                         }
-
                     } else {
                         $statusUnsold = AuctionStatus::UNSOLD;
 
@@ -95,18 +93,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_auction'])) {
         $errors[] = 'Invalid auction ID.';
     } else {
         $statusCancelled = AuctionStatus::CANCELLED;
+        $statusActive    = AuctionStatus::ACTIVE;
+
         $stmt = $conn->prepare("
             UPDATE auction
             SET status = ?
-            WHERE id = ?
+            WHERE id = ? AND status = ?
         ");
         if ($stmt) {
-            $stmt->bind_param("si", $statusCancelled, $auctionId);
+            $stmt->bind_param("sis", $statusCancelled, $auctionId, $statusActive);
             if ($stmt->execute()) {
                 if ($stmt->affected_rows > 0) {
                     $success = "Auction #{$auctionId} has been cancelled.";
                 } else {
-                    $errors[] = "Auction not found or already cancelled.";
+                    $errors[] = "Only active auctions can be cancelled.";
                 }
             } else {
                 $errors[] = "Database error cancelling auction: " . $stmt->error;
@@ -216,14 +216,15 @@ include_once 'header.php';
                   Force finish
                 </button>
               </form>
+              <form method="post" action="admin_auctions.php" style="display:inline-block;">
+                <input type="hidden" name="auction_id" value="<?= (int)$a['id'] ?>">
+                <button type="submit" name="delete_auction" class="btn btn-sm btn-danger">
+                  Cancel
+                </button>
+              </form>
+            <?php else: ?>
+              <span class="text-muted">No actions</span>
             <?php endif; ?>
-
-            <form method="post" action="admin_auctions.php" style="display:inline-block;">
-              <input type="hidden" name="auction_id" value="<?= (int)$a['id'] ?>">
-              <button type="submit" name="delete_auction" class="btn btn-sm btn-danger">
-                Cancel
-              </button>
-            </form>
           </td>
         </tr>
       <?php endforeach; ?>
