@@ -23,12 +23,13 @@ $sql = "
         a.hide_bidders,
         seller.username   AS seller_name,
         seller.email      AS seller_email,
-        i.title           AS item_title,
-        i.description     AS item_description,
+        winner.username   AS winner_name,
+        winner.email      AS winner_email,
         i.image_path      AS item_image
     FROM auction a
-    JOIN item  i      ON a.item_id   = i.id
-    JOIN users seller ON i.seller_id = seller.user_id
+    JOIN item  i            ON a.item_id     = i.id
+    JOIN users seller       ON i.seller_id   = seller.user_id
+    LEFT JOIN users winner  ON a.winner_id   = winner.user_id
     WHERE a.end_date < NOW()
       AND a.status = 'sold'
     ORDER BY a.end_date DESC
@@ -50,8 +51,9 @@ include_once 'header.php';
   <h2 class="mb-4">
     <i class="fa fa-history mr-2"></i>Past Auctions
   </h2>
+
   <p class="text-muted">
-    Below are auctions that have already ended and been sold on the site.
+    Explore a curated archive of items that found their new owners through our marketplace.
   </p>
 
   <?php if (!empty($errors)): ?>
@@ -66,7 +68,7 @@ include_once 'header.php';
 
   <?php if (!$auctions): ?>
     <div class="alert alert-info mt-3">
-      There are no past sold auctions yet.
+      No past auctions found.
     </div>
   <?php else: ?>
 
@@ -76,11 +78,9 @@ include_once 'header.php';
           <table class="table table-striped table-bordered mb-0 align-middle">
             <thead class="thead-light">
               <tr>
-                <th style="width: 50px;">ID</th>
-                <th style="width: 220px;">Auction title</th>
-                <th>Item</th>
+                <th style="width: 240px;">Auction title</th>
                 <th style="width: 180px;">Seller</th>
-                <th style="width: 120px;">Winner</th>
+                <th style="width: 180px;">Winner</th>
                 <th class="text-right" style="width: 110px;">Final price</th>
                 <th class="text-right" style="width: 150px;">End date</th>
                 <th class="text-center" style="width: 80px;">Result</th>
@@ -88,16 +88,14 @@ include_once 'header.php';
             </thead>
             <tbody>
             <?php foreach ($auctions as $a): ?>
+
               <?php
-              $isSold        = ($a['status'] === AuctionStatus::SOLD);
-              $badgeClass    = $isSold ? 'badge-success' : 'badge-secondary';
-              $resultText    = $isSold ? 'Sold' : 'Unsold';
+              $isSold     = ($a['status'] === 'sold');
+              $badgeClass = $isSold ? 'badge-success' : 'badge-secondary';
+              $resultText = $isSold ? 'Sold' : 'Unsold';
 
-              $auctionIsAnon = !empty($a['is_anonymous']);
-              $hideBidders   = !empty($a['hide_bidders']);
-
-              if ($auctionIsAnon) {
-                  $displaySellerName  = 'Anonymous Seller #' . (int)$a['id'];
+              if ($a['is_anonymous']) {
+                  $displaySellerName  = 'Anonymous Seller';
                   $displaySellerEmail = 'Hidden';
               } else {
                   $displaySellerName  = $a['seller_name'];
@@ -107,53 +105,41 @@ include_once 'header.php';
               if ($a['winner_id'] === null) {
                   $displayWinner = '—';
               } else {
-                  if ($hideBidders) {
+                  if ($a['hide_bidders']) {
                       $displayWinner = 'Anonymous Winner';
                   } else {
-                      $displayWinner = 'ID: ' . (int)$a['winner_id'];
+                      $displayWinner = htmlspecialchars($a['winner_email']);
                   }
               }
 
               $itemImage = $a['item_image'] ?? '';
               ?>
-              <tr>
-                <td><?= (int)$a['id'] ?></td>
 
-                <td>
-                  <div class="font-weight-semibold">
-                    <?= htmlspecialchars($a['auction_title']) ?>
-                  </div>
-                </td>
+              <tr>
 
                 <td>
                   <div class="d-flex align-items-center">
                     <?php if (!empty($itemImage)): ?>
                       <img
                         src="uploads/<?= htmlspecialchars($itemImage) ?>"
-                        alt="Item image"
                         style="width: 60px; height: 60px; object-fit: cover; margin-right: 10px;"
                       >
                     <?php endif; ?>
 
-                    <div>
-                      <strong><?= htmlspecialchars($a['item_title']) ?></strong><br>
-                      <?php if (!empty($a['item_description'])): ?>
-                        <small class="text-muted">
-                          <?= htmlspecialchars(mb_strimwidth($a['item_description'], 0, 80, '...')) ?>
-                        </small>
-                      <?php endif; ?>
+                    <div class="font-weight-semibold">
+                      <?= htmlspecialchars($a['auction_title']) ?>
                     </div>
                   </div>
                 </td>
 
                 <td>
                   <?= htmlspecialchars($displaySellerName) ?><br>
-                  <small class="text-muted">
-                    <?= htmlspecialchars($displaySellerEmail) ?>
-                  </small>
+                  <small class="text-muted"><?= htmlspecialchars($displaySellerEmail) ?></small>
                 </td>
 
-                <td><?= htmlspecialchars($displayWinner) ?></td>
+                <td>
+                  <?= htmlspecialchars($displayWinner) ?>
+                </td>
 
                 <td class="text-right">
                   £<?= number_format((float)$a['final_price'], 2) ?>
@@ -166,11 +152,11 @@ include_once 'header.php';
                 </td>
 
                 <td class="text-center">
-                  <span class="badge badge-pill <?= $badgeClass ?>">
-                    <?= $resultText ?>
-                  </span>
+                  <span class="badge badge-pill <?= $badgeClass ?>"><?= $resultText ?></span>
                 </td>
+
               </tr>
+
             <?php endforeach; ?>
             </tbody>
           </table>
